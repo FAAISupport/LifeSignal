@@ -16,9 +16,7 @@ export default function TermsPage() {
         <h1 className="text-3xl font-bold text-sky-700 mb-2">
           LifeSignal Terms of Service
         </h1>
-        <p className="text-sm text-slate-500 mb-6">
-          Last updated: {year}
-        </p>
+        <p className="text-sm text-slate-500 mb-6">Last updated: {year}</p>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-5 text-sm text-slate-800">
           <p>
@@ -49,7 +47,9 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold mb-1">3. Account &amp; Accuracy</h2>
+            <h2 className="text-lg font-semibold mb-1">
+              3. Account &amp; Accuracy
+            </h2>
             <p>
               You agree to provide accurate and up-to-date information,
               including your name, mobile phone number, time zone, and
@@ -60,7 +60,9 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold mb-1">4. SMS &amp; Voice Communications</h2>
+            <h2 className="text-lg font-semibold mb-1">
+              4. SMS &amp; Voice Communications
+            </h2>
             <p className="mb-2">
               By providing your phone number and consenting during sign-up, you
               authorize LifeSignal to send you automated text messages and
@@ -69,7 +71,10 @@ export default function TermsPage() {
             </p>
             <ul className="list-disc list-inside space-y-1">
               <li>Message and data rates may apply.</li>
-              <li>Message and call frequency varies based on your settings and activity.</li>
+              <li>
+                Message and call frequency varies based on your settings and
+                activity.
+              </li>
               <li>
                 You may opt out of SMS at any time by replying{" "}
                 <strong>STOP</strong>. Reply <strong>HELP</strong> for help.
@@ -96,19 +101,22 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold mb-1">6. Acceptable Use</h2>
-            <p className="mb-2">
-              You agree not to use LifeSignal to:
-            </p>
+            <p className="mb-2">You agree not to use LifeSignal to:</p>
             <ul className="list-disc list-inside space-y-1">
               <li>Send spam, unlawful, or abusive messages;</li>
               <li>Impersonate any person or misrepresent your identity;</li>
               <li>Interfere with or disrupt the service or its infrastructure;</li>
-              <li>Reverse engineer or attempt to gain unauthorized access.</li>
+              <li>
+                Reverse engineer or attempt to gain unauthorized access to the
+                service or related systems.
+              </li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold mb-1">7. Fees &amp; Billing</h2>
+            <h2 className="text-lg font-semibold mb-1">
+              7. Fees &amp; Billing
+            </h2>
             <p>
               Some features of LifeSignal may require payment of fees. When you
               subscribe to a paid plan, you authorize us or our payment
@@ -123,4 +131,55 @@ export default function TermsPage() {
             <p>
               You may stop using LifeSignal at any time. We may suspend or
               terminate your access to LifeSignal if you violate these Terms,
-              misuse the service, or if we
+              misuse the service, or if we discontinue the service. Upon
+              termination, your right to use LifeSignal will stop immediately.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold mb-1">9. Disclaimers</h2>
+            <p>
+              LifeSignal is provided on an &quot;AS IS&quot; and &quot;AS
+              AVAILABLE&quot; basis without warranties of any kind, whether
+              express or implied. We do not warrant that the service will be
+              uninterrupted, timely, secure, or error-free.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold mb-1">
+              10. Limitation of Liability
+            </h2>
+            <p>
+              To the maximum extent permitted by law, LifeSignal and its owners,
+              employees, and providers shall not be liable for any indirect,
+              incidental, special, consequential, or punitive damages, or any
+              loss of data, profits, or goodwill, arising out of or related to
+              your use of LifeSignal.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold mb-1">
+              11. Changes to These Terms
+            </h2>
+            <p>
+              We may update these Terms from time to time. When we do, we will
+              revise the &quot;Last updated&quot; date at the top of this page.
+              Your continued use of LifeSignal after changes means you accept
+              the updated Terms.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold mb-1">12. Contact</h2>
+            <p>
+              If you have questions about these Terms, please contact us using
+              the support information inside your LifeSignal account.
+            </p>
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}
