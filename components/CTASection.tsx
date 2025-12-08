@@ -1,31 +1,29 @@
-// components/CTASection.tsx
-import Link from "next/link";
-
 export default function CTASection() {
   return (
-    <section className="pt-16">
-      <div className="bg-sky-600 rounded-2xl p-6 sm:p-8 text-slate-50 shadow-[0_18px_45px_rgba(15,23,42,0.3)] grid md:grid-cols-2 gap-6 items-center">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold">
-            Ready to try LifeSignal?
-          </h2>
-          <p className="mt-2 text-sm sm:text-base text-sky-100">
-            Start with a 14-day free trial. Set up your loved one&apos;s check-in
-            schedule in minutes and see how daily reassurance feels—for them and for you.
-          </p>
-        </div>
-        <div className="space-y-2 text-sm">
-          <Link
-            href="/pricing#start"
-            className="inline-flex w-full sm:w-auto justify-center items-center bg-white text-sky-700 font-medium px-5 py-3 rounded-xl hover:bg-slate-100"
+    <section className="bg-sky-600 text-white py-16">
+      <div className="max-w-4xl mx-auto px-4 text-center">
+        <h2 className="text-3xl md:text-4xl font-extrabold mb-4">
+          Ready to try LifeSignal?
+        </h2>
+        <p className="text-base md:text-lg text-sky-100 mb-6">
+          Start with a 14-day free trial. Set up your loved one&apos;s daily
+          check-in schedule in minutes and feel the peace it brings.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/pricing"
+            className="inline-flex items-center justify-center rounded-full bg-white text-sky-700 px-6 py-3 text-sm md:text-base font-semibold shadow-lg shadow-slate-900/20 hover:bg-slate-100 transition"
           >
-            Start free trial
-          </Link>
-          <p className="text-[0.7rem] text-sky-100">
-            Trial flow and online signup will run through our secure LifeSignal account
-            system. For early pilot access, contact support@lifesignal.com.
-          </p>
+            Start Free Trial
+          </a>
+
         </div>
+
+        <p className="mt-4 text-xs md:text-sm text-sky-100/80">
+          No apps. No hardware. Just a daily phone check-in and smart alerts if
+          something seems wrong.
+        </p>
       </div>
     </section>
   );
