@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --brand-blue: 47 111 237;
+  --brand-navy: 11 27 58;
+  --brand-lavender: 185 167 230;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1000px 700px at 10% -10%, rgba(var(--brand-blue), 0.10), transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, rgba(var(--brand-lavender), 0.12), transparent 55%),
+    linear-gradient(180deg, #ffffff 0%, #f7f8fb 100%);
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto max-w-6xl px-4;
+  }
+
+  .glass {
+    @apply bg-white/75 backdrop-blur supports-[backdrop-filter]:bg-white/55;
+  }
+
+  .headline {
+    @apply text-3xl font-semibold tracking-tight text-brand-navy md:text-5xl;
+  }
+
+  .subhead {
+    @apply text-base leading-relaxed text-neutral-700 md:text-lg;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-brand-blue/15 bg-brand-blue/5 px-3 py-1 text-xs font-medium text-brand-navy;
+  }
+}
