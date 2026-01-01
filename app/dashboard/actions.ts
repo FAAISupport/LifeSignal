@@ -1,32 +1,43 @@
 "use server";
 
 import crypto from "crypto";
+import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
 import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth";
 
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
+export type ActionResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
 
+function err(message: string): ActionResult<never> {
+  return { ok: false, error: message };
+}
 function ok<T>(data: T): ActionResult<T> {
   return { ok: true, data };
 }
 
-function fail<T = never>(error: string): ActionResult<T> {
-  return { ok: false, error };
+async function subscriptionActiveForUser(userId: string): Promise<boolean> {
+  const sb = await supabaseServer();
+  const { data: sub, error } = await sb
+    .from("subscriptions")
+    .select("status, plan")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) return false;
+  if (!sub) return false;
+  return ["active", "trialing"].includes(String(sub.status));
 }
 
-function isE164(v: string) {
-  return /^\+\d{10,15}$/.test((v || "").trim());
-}
-
-function isHHMM(v: string) {
-  return /^([01]\d|2[0-3]):[0-5]\d$/.test((v || "").trim());
-}
-
-// Used by the “Add loved one” wizard page.
-// This can return an ActionResult because the page wrapper redirects.
-export async function createSeniorAndContacts(formData: FormData): Promise<ActionResult<{ seniorId: string; inviteUrl: string }>> {
+/**
+ * Creates a loved one + (optional) escalation contact.
+ * IMPORTANT: Monitoring stays OFF until user activates a plan and clicks "Activate monitoring".
+ */
+export async function createSeniorAndContacts(
+  formData: FormData
+): Promise<ActionResult<{ seniorId: string; inviteUrl: string }>> {
   try {
     const user = await requireUser();
     const sb = await supabaseServer();
@@ -36,7 +47,7 @@ export async function createSeniorAndContacts(formData: FormData): Promise<Actio
     const timezone = String(formData.get("timezone") ?? "America/New_York").trim();
     const checkinTime = String(formData.get("checkin_time") ?? "09:00").trim();
     const channelPref = String(formData.get("channel_pref") ?? "sms").trim();
-    const consent = formData.get("consent") === "on" || formData.get("consent") === "true";
+    const consent = formData.get("consent") === "on";
     const consentIp = String(formData.get("consent_ip") ?? "").trim();
     const consentVersion = "v1";
 
@@ -44,17 +55,22 @@ export async function createSeniorAndContacts(formData: FormData): Promise<Actio
     const fcPhone = String(formData.get("fc_phone_e164") ?? "").trim();
     const fcEmail = String(formData.get("fc_email") ?? "").trim();
 
-    if (!seniorName) return fail("Loved one name is required.");
-    if (!phone) return fail("Loved one phone number is required.");
-    if (!isE164(phone)) return fail("Loved one phone must be E.164 format (example: +13525551234).");
-    if (!timezone) return fail("Timezone is required (example: America/New_York).");
-    if (!checkinTime || !isHHMM(checkinTime)) return fail("Check-in time must be HH:MM (24h), e.g. 09:00.");
-    if (!["sms", "voice", "both"].includes(channelPref)) return fail("Channel preference must be sms, voice, or both.");
-    if (!fcName) return fail("Escalation contact name is required.");
-    if (!fcPhone && !fcEmail) return fail("Provide at least a phone number or email for the escalation contact.");
-    if (fcPhone && !isE164(fcPhone)) return fail("Escalation phone must be E.164 format (example: +13525551234).");
-    if (!consent) return fail("Consent is required.");
+    if (!seniorName) return err("Loved one name is required.");
+    if (!phone) return err("Loved one phone (E.164) is required.");
+    if (!timezone) return err("Timezone is required.");
+    if (!checkinTime) return err("Check-in time is required.");
+    if (!["sms", "voice", "both"].includes(channelPref)) {
+      return err("Channel preference must be sms, voice, or both.");
+    }
+    if (!consent) return err("Consent is required.");
 
+    const hasEscalationAny = Boolean(fcName || fcPhone || fcEmail);
+    if (hasEscalationAny) {
+      if (!fcName) return err("Escalation contact name is required.");
+      if (!fcPhone && !fcEmail) return err("Provide an escalation phone or email.");
+    }
+
+    // Create loved one with monitoring OFF by default (Plan-gated activation)
     const { data: senior, error: seniorErr } = await sb
       .from("seniors")
       .insert({
@@ -64,28 +80,34 @@ export async function createSeniorAndContacts(formData: FormData): Promise<Actio
         timezone,
         checkin_time: checkinTime,
         channel_pref: channelPref,
+        wait_minutes: 30,
+
+        // HARD GATE:
+        enabled: false,
+        messaging_enabled: false,
+
         consented_at: new Date().toISOString(),
         consent_ip: consentIp || null,
         consent_version: consentVersion,
-        enabled: true,
-        messaging_enabled: true,
       })
-      .select("*")
+      .select("id")
       .single();
 
-    if (seniorErr) return fail(seniorErr.message);
+    if (seniorErr) return err(seniorErr.message);
 
-    const { error: fcErr } = await sb.from("family_contacts").insert({
-      senior_id: senior.id,
-      name: fcName,
-      phone_e164: fcPhone || null,
-      email: fcEmail || null,
-      verified: false,
-      notify_on_miss: true,
-      notify_on_help: true,
-    });
+    if (hasEscalationAny) {
+      const { error: fcErr } = await sb.from("family_contacts").insert({
+        senior_id: senior.id,
+        name: fcName,
+        phone_e164: fcPhone || null,
+        email: fcEmail || null,
+        verified: false,
+        notify_on_miss: true,
+        notify_on_help: true,
+      });
 
-    if (fcErr) return fail(fcErr.message);
+      if (fcErr) return err(fcErr.message);
+    }
 
     const token = crypto.randomBytes(18).toString("hex");
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString();
@@ -96,40 +118,38 @@ export async function createSeniorAndContacts(formData: FormData): Promise<Actio
       expires_at: expiresAt,
     });
 
-    if (invErr) return fail(invErr.message);
+    if (invErr) return err(invErr.message);
 
     await supabaseAdmin.from("audit_logs").insert({
       actor_user_id: user.id,
       senior_id: senior.id,
       action: "senior_created",
-      metadata: { token_created: true },
+      metadata: { token_created: true, monitoring_enabled: false },
     });
 
-    const inviteUrl = `${env.APP_BASE_URL}/dashboard?s=invite&token=${token}`;
-    return ok({ seniorId: String(senior.id), inviteUrl });
+    return ok({
+      seniorId: senior.id,
+      inviteUrl: `${env.APP_BASE_URL}/dashboard?s=invite&token=${token}`,
+    });
   } catch (e: any) {
-    return fail(e?.message ?? "Unknown error creating loved one.");
+    return err(e?.message ?? "Unknown error creating loved one.");
   }
 }
 
-// IMPORTANT: This MUST return void/Promise<void> so it can be used in <form action={...}>
+/**
+ * Update settings (no return value so it can be used directly as <form action={...}>)
+ */
 export async function updateSeniorSettings(formData: FormData): Promise<void> {
   const user = await requireUser();
   const sb = await supabaseServer();
 
-  const id = String(formData.get("id") ?? "").trim();
+  const id = String(formData.get("id") ?? "");
   const timezone = String(formData.get("timezone") ?? "America/New_York").trim();
   const checkinTime = String(formData.get("checkin_time") ?? "09:00").trim();
   const channelPref = String(formData.get("channel_pref") ?? "sms").trim();
   const waitMinutes = Number(formData.get("wait_minutes") ?? 30);
 
-  if (!id) throw new Error("Missing senior id.");
-  if (!timezone) throw new Error("Timezone is required.");
-  if (!isHHMM(checkinTime)) throw new Error("Check-in time must be HH:MM (24h), e.g. 09:00.");
-  if (!["sms", "voice", "both"].includes(channelPref)) throw new Error("Channel preference must be sms, voice, or both.");
-  if (!Number.isFinite(waitMinutes) || waitMinutes < 5 || waitMinutes > 240) {
-    throw new Error("Wait window must be between 5 and 240 minutes.");
-  }
+  if (!id) redirect(`/dashboard?error=${encodeURIComponent("Missing loved one id")}`);
 
   const { error } = await sb
     .from("seniors")
@@ -142,5 +162,72 @@ export async function updateSeniorSettings(formData: FormData): Promise<void> {
     .eq("id", id)
     .eq("owner_user_id", user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
+
+  redirect(`/dashboard/seniors/${encodeURIComponent(id)}?saved=1`);
+}
+
+function requireActivationAcknowledge(formData: FormData) {
+  const ack = formData.get("activation_ack") === "on";
+  if (!ack) {
+    redirect(
+      `/dashboard?error=${encodeURIComponent(
+        "Please confirm you understand LifeSignal is non-emergency and subscriptions are non-refundable."
+      )}`
+    );
+  }
+}
+
+/**
+ * Plan-gated activation: turns monitoring ON for a specific loved one.
+ * Requires acknowledgement checkbox.
+ */
+export async function activateMonitoring(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const sb = await supabaseServer();
+
+  requireActivationAcknowledge(formData);
+
+  const seniorId = String(formData.get("senior_id") ?? "").trim();
+  if (!seniorId) redirect(`/dashboard?error=${encodeURIComponent("Missing loved one id")}`);
+
+  const active = await subscriptionActiveForUser(user.id);
+  if (!active) {
+    redirect(`/pricing?error=${encodeURIComponent("Choose a plan to activate monitoring.")}`);
+  }
+
+  const { error } = await sb
+    .from("seniors")
+    .update({ enabled: true, messaging_enabled: true })
+    .eq("id", seniorId)
+    .eq("owner_user_id", user.id);
+
+  if (error) redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
+
+  redirect(`/dashboard/seniors/${encodeURIComponent(seniorId)}?activated=1`);
+}
+
+/**
+ * Plan-gated activation: turns monitoring ON for all loved ones owned by the user.
+ * Requires acknowledgement checkbox.
+ */
+export async function activateMonitoringAll(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const sb = await supabaseServer();
+
+  requireActivationAcknowledge(formData);
+
+  const active = await subscriptionActiveForUser(user.id);
+  if (!active) {
+    redirect(`/pricing?error=${encodeURIComponent("Choose a plan to activate monitoring.")}`);
+  }
+
+  const { error } = await sb
+    .from("seniors")
+    .update({ enabled: true, messaging_enabled: true })
+    .eq("owner_user_id", user.id);
+
+  if (error) redirect(`/dashboard?error=${encodeURIComponent(error.message)}`);
+
+  redirect(`/dashboard?activated=1`);
 }

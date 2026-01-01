@@ -1,3 +1,4 @@
+// app/dashboard/seniors/[seniorId]/page.tsx
 import { supabaseServer } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -5,14 +6,21 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
-import { updateSeniorSettings } from "../../actions";
+import { updateSeniorSettings, activateMonitoring } from "../../actions";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+function isActivePlan(status?: string | null) {
+  return status === "active" || status === "trialing";
+}
 
 export default async function Page({
   params,
   searchParams,
 }: {
   params: { seniorId: string };
-  searchParams?: { error?: string; saved?: string; created?: string };
+  searchParams?: { error?: string; saved?: string; created?: string; activated?: string };
 }) {
   const sb = await supabaseServer();
 
@@ -23,6 +31,18 @@ export default async function Page({
 
   if (userErr || !user) redirect("/login");
 
+  // Subscription status (for plan-gated activation UI)
+  const { data: sub } = await sb
+    .from("subscriptions")
+    .select("status, plan")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const planActive = isActivePlan(sub?.status ?? null);
+  const planLabel = planActive
+    ? `${String(sub?.plan ?? "plan")} (${String(sub?.status)})`
+    : "No active plan";
+
   const {
     data: senior,
     error: seniorErr,
@@ -30,12 +50,14 @@ export default async function Page({
     .from("seniors")
     .select("*")
     .eq("id", params.seniorId)
+    // IMPORTANT: also enforce ownership here, otherwise someone could guess IDs
+    .eq("owner_user_id", user.id)
     .maybeSingle();
 
   if (seniorErr || !senior) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
-        <Card>
+        <Card className="p-6">
           <div className="text-lg font-semibold text-brand-navy">Loved one not found</div>
           <div className="mt-2 text-sm text-neutral-600">
             This profile may not exist, or you may not have access to it.
@@ -67,6 +89,7 @@ export default async function Page({
   const bannerError = typeof searchParams?.error === "string" ? searchParams.error : "";
   const bannerSaved = searchParams?.saved === "1";
   const bannerCreated = searchParams?.created === "1";
+  const bannerActivated = searchParams?.activated === "1";
 
   const { data: checkins } = await sb
     .from("checkins")
@@ -81,6 +104,8 @@ export default async function Page({
     .eq("senior_id", params.seniorId)
     .order("created_at", { ascending: false });
 
+  const monitoringOn = Boolean(senior.enabled && senior.messaging_enabled);
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -89,6 +114,9 @@ export default async function Page({
           <h1 className="text-2xl font-semibold text-brand-navy">
             {senior.name ?? "Unnamed loved one"}
           </h1>
+          <div className="mt-2 text-sm text-neutral-600">
+            Plan: <span className="font-medium">{planLabel}</span>
+          </div>
         </div>
         <Link
           href="/dashboard"
@@ -110,13 +138,111 @@ export default async function Page({
         </div>
       ) : null}
 
+      {bannerActivated ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          Monitoring activated ✅
+        </div>
+      ) : null}
+
       {bannerError ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {bannerError}
         </div>
       ) : null}
 
-      <Card>
+      {/* Activation gate card */}
+      <Card className="p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-brand-navy">Monitoring</h2>
+            <div className="mt-1 text-sm text-neutral-600">
+              Monitoring must be activated to run daily check-ins and escalations.
+            </div>
+          </div>
+
+          <span
+            className={[
+              "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium",
+              monitoringOn
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-amber-200 bg-amber-50 text-amber-800",
+            ].join(" ")}
+          >
+            {monitoringOn ? "Monitoring ON" : "Monitoring OFF"}
+          </span>
+        </div>
+
+        {!monitoringOn ? (
+          <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4">
+            {!planActive ? (
+              <div className="space-y-3">
+                <div className="text-sm font-semibold text-brand-navy">
+                  Choose a plan to activate monitoring
+                </div>
+                <div className="text-sm text-neutral-600">
+                  You can set everything up, but LifeSignal won’t send check-ins or escalations
+                  until a plan is active.
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center justify-center rounded-xl bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                  >
+                    View pricing
+                  </Link>
+                  <Link
+                    href="/terms"
+                    className="text-sm font-semibold text-brand-navy underline underline-offset-4"
+                  >
+                    Terms
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <form action={activateMonitoring} className="space-y-3">
+                <input type="hidden" name="senior_id" value={String(senior.id)} />
+
+                <div className="text-sm font-semibold text-brand-navy">
+                  Ready to activate monitoring
+                </div>
+                <div className="text-sm text-neutral-600">
+                  Confirm the acknowledgement below, then turn on monitoring for this loved one.
+                </div>
+
+                <label className="flex items-start gap-3 text-sm text-neutral-800">
+                  <input
+                    type="checkbox"
+                    name="activation_ack"
+                    className="mt-1 h-4 w-4 rounded border-neutral-300"
+                    required
+                  />
+                  <span>
+                    I understand LifeSignal is a <strong>non-emergency</strong> monitoring service and{" "}
+                    <strong>subscriptions are non-refundable</strong>.
+                  </span>
+                </label>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="submit">Activate monitoring</Button>
+                  <Link
+                    href="/terms"
+                    className="text-sm font-semibold text-brand-navy underline underline-offset-4"
+                  >
+                    View Terms
+                  </Link>
+                </div>
+              </form>
+            )}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+            Monitoring is active. Daily check-ins and escalation logic will run automatically based on this profile.
+          </div>
+        )}
+      </Card>
+
+      {/* Settings */}
+      <Card className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-brand-navy">Settings</h2>
@@ -124,16 +250,6 @@ export default async function Page({
               Check-in time, channel, and wait window.
             </div>
           </div>
-          <span
-            className={[
-              "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium",
-              senior.enabled
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-neutral-200 bg-neutral-50 text-neutral-700",
-            ].join(" ")}
-          >
-            {senior.enabled ? "Monitoring" : "Paused"}
-          </span>
         </div>
 
         <form action={updateSeniorSettings} className="mt-4 grid gap-4">
@@ -183,7 +299,8 @@ export default async function Page({
         </form>
       </Card>
 
-      <Card>
+      {/* Contacts */}
+      <Card className="p-6">
         <h2 className="text-lg font-semibold text-brand-navy">Escalation contacts</h2>
         <div className="mt-3 space-y-2 text-sm text-neutral-700">
           {(contacts ?? []).length === 0 ? (
@@ -213,7 +330,8 @@ export default async function Page({
         </div>
       </Card>
 
-      <Card>
+      {/* Checkins */}
+      <Card className="p-6">
         <h2 className="text-lg font-semibold text-brand-navy">Recent check-ins</h2>
         <div className="mt-3 space-y-2 text-sm text-neutral-700">
           {(checkins ?? []).length === 0 ? (
