@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { env, requireCronToken } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { sendSms, twilioClient } from "@/lib/twilio";
+import { sendSms, getTwilioClient, getTwilioFromNumber } from "@/lib/twilio";
 
 function authCron(req: Request) {
   const token =
@@ -10,7 +10,6 @@ function authCron(req: Request) {
     new URL(req.url).searchParams.get("token") ||
     "";
   return token === requireCronToken();
-
 }
 
 async function subscriptionActive(ownerUserId: string) {
@@ -26,17 +25,31 @@ async function subscriptionActive(ownerUserId: string) {
 function computeScheduledForUtc(tz: string, hhmm: string) {
   const [hh, mm] = hhmm.split(":").map((x) => Number(x));
   const nowLocal = DateTime.now().setZone(tz);
-  const scheduledLocal = nowLocal.set({ hour: hh, minute: mm, second: 0, millisecond: 0 });
-  return { nowLocal, scheduledLocal, scheduledUtcIso: scheduledLocal.toUTC().toISO()! };
+  const scheduledLocal = nowLocal.set({
+    hour: hh,
+    minute: mm,
+    second: 0,
+    millisecond: 0,
+  });
+  return {
+    nowLocal,
+    scheduledLocal,
+    scheduledUtcIso: scheduledLocal.toUTC().toISO()!,
+  };
 }
 
-function isDueWithinWindow(nowLocal: DateTime, scheduledLocal: DateTime, windowMinutes: number) {
+function isDueWithinWindow(
+  nowLocal: DateTime,
+  scheduledLocal: DateTime,
+  windowMinutes: number
+) {
   const diff = nowLocal.diff(scheduledLocal, "minutes").minutes;
   return diff >= 0 && diff < windowMinutes;
 }
 
 export async function GET(req: Request) {
-  if (!authCron(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!authCron(req))
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { data: seniors } = await supabaseAdmin
     .from("seniors")
@@ -50,7 +63,10 @@ export async function GET(req: Request) {
     const allowed = s.beta_override || (await subscriptionActive(s.owner_user_id));
     if (!allowed) continue;
 
-    const { nowLocal, scheduledLocal, scheduledUtcIso } = computeScheduledForUtc(s.timezone, s.checkin_time);
+    const { nowLocal, scheduledLocal, scheduledUtcIso } = computeScheduledForUtc(
+      s.timezone,
+      s.checkin_time
+    );
 
     // Run every 5 minutes: due window is 5
     if (!isDueWithinWindow(nowLocal, scheduledLocal, 5)) continue;
@@ -74,7 +90,7 @@ export async function GET(req: Request) {
       .insert({
         senior_id: s.id,
         scheduled_for: scheduledUtcIso,
-        status: "pending"
+        status: "pending",
       })
       .select("*")
       .single();
@@ -83,25 +99,25 @@ export async function GET(req: Request) {
       results.push({ senior: s.id, error: ciErr.message });
       continue;
     }
-if (!env.TWILIO_FROM_NUMBER) {
-  return NextResponse.json(
-    { error: "TWILIO_FROM_NUMBER is not set" },
-    { status: 500 }
-  );
-}
-const TWILIO_FROM = env.TWILIO_FROM_NUMBER;
 
-    const msgBody = "LifeSignal check-in: Reply YES if you're okay. Reply STOP to stop.";
+    const msgBody =
+      "LifeSignal check-in: Reply YES if you're okay. Reply STOP to stop.";
 
     try {
+      // Only require Twilio config when we actually need to send
+      const TWILIO_FROM = getTwilioFromNumber();
+      const twilioClient = getTwilioClient();
+
       if (s.channel_pref === "sms" || s.channel_pref === "both") {
         const sms = await sendSms(s.phone_e164, msgBody);
+
         await supabaseAdmin.from("checkin_attempts").insert({
           checkin_id: checkin.id,
           attempt_type: "sms",
           twilio_sid: sms.sid,
-          status: "sent"
+          status: "sent",
         });
+
         await supabaseAdmin.from("messages").insert({
           senior_id: s.id,
           direction: "out",
@@ -109,7 +125,7 @@ const TWILIO_FROM = env.TWILIO_FROM_NUMBER;
           to_e164: s.phone_e164,
           body: msgBody,
           twilio_sid: sms.sid,
-          raw_payload: { type: "checkin_sms" }
+          raw_payload: { type: "checkin_sms" },
         });
       }
 
@@ -118,13 +134,14 @@ const TWILIO_FROM = env.TWILIO_FROM_NUMBER;
           from: TWILIO_FROM,
           to: s.phone_e164,
           url: `${env.APP_BASE_URL}/api/twilio/voice`,
-          method: "POST"
+          method: "POST",
         });
+
         await supabaseAdmin.from("checkin_attempts").insert({
           checkin_id: checkin.id,
           attempt_type: "voice",
           twilio_sid: call.sid,
-          status: "sent"
+          status: "sent",
         });
       }
 
@@ -132,7 +149,7 @@ const TWILIO_FROM = env.TWILIO_FROM_NUMBER;
         actor_user_id: null,
         senior_id: s.id,
         action: "checkin_sent",
-        metadata: { checkin_id: checkin.id, channel_pref: s.channel_pref }
+        metadata: { checkin_id: checkin.id, channel_pref: s.channel_pref },
       });
 
       results.push({ senior: s.id, checkin: checkin.id, ok: true });
@@ -141,9 +158,14 @@ const TWILIO_FROM = env.TWILIO_FROM_NUMBER;
         checkin_id: checkin.id,
         attempt_type: "sms",
         status: "failed",
-        error: e?.message ?? "unknown error"
+        error: e?.message ?? "unknown error",
       });
-      results.push({ senior: s.id, checkin: checkin.id, error: e?.message ?? "send failed" });
+
+      results.push({
+        senior: s.id,
+        checkin: checkin.id,
+        error: e?.message ?? "send failed",
+      });
     }
   }
 

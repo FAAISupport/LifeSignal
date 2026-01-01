@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 
 export default async function DashboardPage() {
   const sb = await supabaseServer();
@@ -46,12 +45,19 @@ export default async function DashboardPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/dashboard/seniors/new">Add senior</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/logout">Log out</Link>
-          </Button>
+          <Link
+            href="/dashboard/seniors/new"
+            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-50 bg-brand-navy text-white hover:opacity-90"
+          >
+            Add senior
+          </Link>
+
+          <Link
+            href="/something"
+            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-50 border border-brand-navy/20 bg-white hover:bg-brand-mist"
+          >
+            ...
+          </Link>
         </div>
       </div>
 
@@ -64,9 +70,13 @@ export default async function DashboardPage() {
                 Manage profiles, check-in times, and escalation settings.
               </div>
             </div>
-            <Button asChild variant="outline">
-              <Link href="/dashboard/seniors/new">Add</Link>
-            </Button>
+
+            <Link
+              href="/dashboard/seniors/new"
+              className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-50 border border-brand-navy/20 bg-white hover:bg-brand-mist"
+            >
+              Add
+            </Link>
           </div>
 
           <div className="mt-4 grid gap-2">
@@ -82,11 +92,14 @@ export default async function DashboardPage() {
                   className="block rounded-lg border border-neutral-200 p-3 hover:bg-neutral-50"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="font-medium text-brand-navy">{s.name ?? "Unnamed"}</div>
+                    <div className="font-medium text-brand-navy">
+                      {s.name ?? "Unnamed"}
+                    </div>
                     <div className="text-xs text-neutral-500">
                       {s.enabled ? "Enabled" : "Disabled"}
                     </div>
                   </div>
+
                   <div className="mt-1 text-sm text-neutral-600">
                     {s.phone_e164 ?? ""}
                     {s.timezone ? ` • ${s.timezone}` : ""}
