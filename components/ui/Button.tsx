@@ -1,25 +1,41 @@
-import React from "react";
+import * as React from "react";
 
-type Variant = "primary" | "ghost" | "soft" | "danger";
+export type Variant =
+  | "default"
+  | "outline"
+  | "ghost"
+  | "secondary"
+  | "destructive"
+  | "link"
+  | "soft";
 
-export function Button(
-  props: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }
-) {
-  const { variant = "primary", className = "", ...rest } = props;
+type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant;
+};
 
-  const base =
-    "inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-medium transition " +
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white " +
-    "disabled:opacity-60 disabled:cursor-not-allowed";
+const variants: Record<Variant, string> = {
+  default: "bg-brand-navy text-white hover:opacity-90",
+  outline: "border border-brand-navy/20 bg-white hover:bg-brand-mist",
+  ghost: "hover:bg-brand-mist",
+  secondary: "bg-brand-mist text-brand-navy hover:opacity-90",
+  destructive: "bg-red-600 text-white hover:bg-red-700",
+  link: "underline underline-offset-4 hover:opacity-80 bg-transparent",
+  soft: "bg-brand-blue/10 text-brand-navy hover:bg-brand-blue/15",
+};
 
-  const styles =
-    variant === "primary"
-      ? "bg-brand-blue text-white shadow-glow hover:bg-brand-navy"
-      : variant === "soft"
-      ? "bg-brand-blue/10 text-brand-navy hover:bg-brand-blue/15"
-      : variant === "danger"
-      ? "bg-red-600 text-white hover:bg-red-700"
-      : "bg-transparent text-brand-navy hover:bg-brand-blue/10";
+function cn(...classes: Array<string | undefined | false>) {
+  return classes.filter(Boolean).join(" ");
+}
 
-  return <button className={`${base} ${styles} ${className}`} {...rest} />;
+export function Button({ variant = "default", className, ...props }: Props) {
+  return (
+    <button
+      {...props}
+      className={cn(
+        "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition disabled:opacity-50 disabled:pointer-events-none",
+        variants[variant],
+        className
+      )}
+    />
+  );
 }

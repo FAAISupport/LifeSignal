@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -44,7 +44,7 @@ const plans: Array<{
       "Everything in Check-In",
       "SMS + voice redundancy",
       "Up to 5 family contacts",
-      "‘Help’ response path",
+      "â€˜Helpâ€™ response path",
       "Configurable wait window",
       "Priority support"
     ]
@@ -128,7 +128,7 @@ export function PricingTable() {
 
             <ul className="mt-4 space-y-2 text-sm text-neutral-700">
               {p.highlights.map((h) => (
-                <li key={h}>• {h}</li>
+                <li key={h}>â€¢ {h}</li>
               ))}
             </ul>
 
@@ -138,7 +138,7 @@ export function PricingTable() {
                   {cadence === "monthly" ? "Choose Monthly" : "Choose Yearly"}
                 </Button>
               </Link>
-              <p className="mt-2 text-xs text-neutral-500">Checkout is secured by Stripe.</p>
+              <p className="mt-2 text-xs text-neutral-500">Checkout is secured by Paddle.</p>
             </div>
           </Card>
         ))}
@@ -150,3 +150,4 @@ export function PricingTable() {
     </div>
   );
 }
+

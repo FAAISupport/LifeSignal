@@ -13,7 +13,7 @@ async function signupAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const name = String(formData.get("name") ?? "");
 
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const { data, error } = await sb.auth.signUp({ email, password });
   if (error) throw new Error(error.message);
 

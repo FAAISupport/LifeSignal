@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { updateSeniorSettings } from "../../actions";
 
 export default async function Page({ params }: { params: { seniorId: string } }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const { data: senior } = await sb.from("seniors").select("*").eq("id", params.seniorId).single();
   const { data: checkins } = await sb
     .from("checkins")

@@ -9,7 +9,8 @@ function authCron(req: Request) {
     req.headers.get("x-cron-token") ||
     new URL(req.url).searchParams.get("token") ||
     "";
-  return token === env.CRON_SECRET_TOKEN;
+  return token === requireCronToken();
+
 }
 
 async function subscriptionActive(ownerUserId: string) {
@@ -82,6 +83,13 @@ export async function GET(req: Request) {
       results.push({ senior: s.id, error: ciErr.message });
       continue;
     }
+if (!env.TWILIO_FROM_NUMBER) {
+  return NextResponse.json(
+    { error: "TWILIO_FROM_NUMBER is not set" },
+    { status: 500 }
+  );
+}
+const TWILIO_FROM = env.TWILIO_FROM_NUMBER;
 
     const msgBody = "LifeSignal check-in: Reply YES if you're okay. Reply STOP to stop.";
 
@@ -97,7 +105,7 @@ export async function GET(req: Request) {
         await supabaseAdmin.from("messages").insert({
           senior_id: s.id,
           direction: "out",
-          from_e164: env.TWILIO_FROM_NUMBER,
+          from_e164: TWILIO_FROM,
           to_e164: s.phone_e164,
           body: msgBody,
           twilio_sid: sms.sid,
@@ -107,7 +115,7 @@ export async function GET(req: Request) {
 
       if (s.channel_pref === "voice" || s.channel_pref === "both") {
         const call = await twilioClient.calls.create({
-          from: env.TWILIO_FROM_NUMBER,
+          from: TWILIO_FROM,
           to: s.phone_e164,
           url: `${env.APP_BASE_URL}/api/twilio/voice`,
           method: "POST"

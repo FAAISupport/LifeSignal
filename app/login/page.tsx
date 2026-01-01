@@ -11,13 +11,13 @@ async function loginAction(formData: FormData) {
   "use server";
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw new Error(error.message);
   redirect("/dashboard");
 }
 
-export default function Page() {
+export default async function Page() {
   return (
     <AuthShell
       title="Welcome back."

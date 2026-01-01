@@ -11,7 +11,7 @@ function authCron(req: Request) {
   return token === requireCronToken();
 }
 
-export async function GETexport async function GET(req: Request) {
+export async function GET(req: Request) {
   if (!authCron(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   if (!env.TWILIO_FROM_NUMBER) {
@@ -20,19 +20,6 @@ export async function GETexport async function GET(req: Request) {
       { status: 500 }
     );
   }
-
-  // Pull pending check-ins up to a safe cap; evaluate wait window per senior
-  const oldest = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(); // look back 6h
-  const { data: pending } = await supabaseAdmin
-    .from("checkins")
-    .select("*, seniors(*)")
-    .eq("status", "pending")
-    .gte("scheduled_for", oldest)
-    .limit(500);
-
-  // ... keep the rest of your code exactly the same
-
-
 
   // Pull pending check-ins up to a safe cap; evaluate wait window per senior
   const oldest = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(); // look back 6h
@@ -69,7 +56,7 @@ export async function GETexport async function GET(req: Request) {
           checkin_id: row.id,
           attempt_type: "family_sms",
           twilio_sid: sms.sid,
-          status: "sent"
+          status: "sent",
         });
       }
 
@@ -79,7 +66,7 @@ export async function GETexport async function GET(req: Request) {
         actor_user_id: null,
         senior_id: senior.id,
         action: "checkin_escalated_missed",
-        metadata: { checkin_id: row.id, contacts_count: (contacts ?? []).length }
+        metadata: { checkin_id: row.id, contacts_count: (contacts ?? []).length },
       });
 
       results.push({ checkin: row.id, senior: senior.id, escalated: true });

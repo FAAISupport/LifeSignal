@@ -1,0 +1,21 @@
+﻿import { NextResponse } from "next/server";
+
+/**
+ * Temporary placeholder route so Next/TS can type-check builds.
+ * If you're not using Stripe Checkout, keep this returning 410.
+ * If you are using Stripe Checkout, replace this with real session creation logic.
+ */
+
+export async function POST() {
+  return NextResponse.json(
+    {
+      error: "Stripe Checkout route is not implemented.",
+      hint: "If you are using Paddle, you can delete Stripe checkout UI flows and keep this route returning 410."
+    },
+    { status: 410 }
+  );
+}
+
+export async function GET() {
+  return NextResponse.json({ ok: false }, { status: 405 });
+}

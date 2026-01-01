@@ -8,7 +8,7 @@ import crypto from "crypto";
 
 export async function createSeniorAndContacts(formData: FormData) {
   const user = await requireUser();
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
 
   const seniorName = String(formData.get("senior_name") ?? "");
   const phone = String(formData.get("phone_e164") ?? "");
@@ -76,7 +76,7 @@ export async function createSeniorAndContacts(formData: FormData) {
 
 export async function updateSeniorSettings(formData: FormData) {
   const user = await requireUser();
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
 
   const id = String(formData.get("id") ?? "");
   const timezone = String(formData.get("timezone") ?? "America/New_York");

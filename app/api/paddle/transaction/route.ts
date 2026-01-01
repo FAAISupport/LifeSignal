@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
     error: authError,

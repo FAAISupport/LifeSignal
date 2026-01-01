@@ -14,7 +14,7 @@ export default async function Page() {
     );
   }
 
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const { data: seniors } = await sb.from("seniors").select("*").order("created_at", { ascending: false }).limit(50);
   const { data: checkins24h } = await sb.from("checkins").select("id").gte("scheduled_for", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 

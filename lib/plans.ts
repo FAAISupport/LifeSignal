@@ -1,28 +1,25 @@
-import { env } from "@/lib/env";
+export type BillingInterval = "monthly" | "annual";
+export type PlanKey = "checkin" | "assurance" | "facility";
 
-export type PlanTier = "checkin" | "assurance" | "facility";
-export type PlanCadence = "monthly" | "annual";
+export type PlanConfig = {
+  key: PlanKey;
+  name: string;
+  monthlyLabel: string;
+  annualLabel: string;
+  paddle?: {
+    monthlyPriceId?: string;
+    annualPriceId?: string;
+  };
+};
 
-export function priceIdFor(tier: PlanTier, cadence: PlanCadence) {
-  const key = `${tier}_${cadence}` as const;
-  switch (key) {
-    case "checkin_monthly":
-      return env.STRIPE_PRICE_CHECKIN_MONTHLY;
-    case "checkin_annual":
-      return env.STRIPE_PRICE_CHECKIN_ANNUAL;
-    case "assurance_monthly":
-      return env.STRIPE_PRICE_ASSURANCE_MONTHLY;
-    case "assurance_annual":
-      return env.STRIPE_PRICE_ASSURANCE_ANNUAL;
-    case "facility_monthly":
-      return env.STRIPE_PRICE_FACILITY_MONTHLY;
-    case "facility_annual":
-      return env.STRIPE_PRICE_FACILITY_ANNUAL;
-    default:
-      throw new Error("Invalid plan selection");
-  }
-}
+export const PLANS: PlanConfig[] = [
+  { key: "checkin", name: "Daily Check-In", monthlyLabel: "$/mo", annualLabel: "$/yr" },
+  { key: "assurance", name: "Assurance", monthlyLabel: "$/mo", annualLabel: "$/yr" },
+  { key: "facility", name: "Facility", monthlyLabel: "$/mo", annualLabel: "$/yr" },
+];
 
-export function planLabel(tier: PlanTier) {
-  return tier === "checkin" ? "Check-In" : tier === "assurance" ? "Assurance" : "Facility";
+export function getPaddlePriceId(plan: PlanKey, interval: BillingInterval) {
+  const p = PLANS.find(x => x.key === plan);
+  if (!p?.paddle) return undefined;
+  return interval === "monthly" ? p.paddle.monthlyPriceId : p.paddle.annualPriceId;
 }
