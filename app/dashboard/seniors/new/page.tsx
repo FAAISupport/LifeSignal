@@ -17,7 +17,7 @@ function clean(s: unknown) {
 async function createLovedOneAction(formData: FormData) {
   "use server";
 
-  // Basic auth guard (if session missing, go login with next)
+  // Auth guard
   const sb = await supabaseServer();
   const {
     data: { user },
@@ -67,15 +67,6 @@ async function createLovedOneAction(formData: FormData) {
       )}`
     );
   }
-
-  // Optional quick sanity checks
-  if (!timezone) {
-    redirect(
-      `/dashboard/seniors/new?error=${encodeURIComponent(
-        "Timezone is required."
-      )}`
-    );
-  }
   if (!checkinTime || !/^\d{2}:\d{2}$/.test(checkinTime)) {
     redirect(
       `/dashboard/seniors/new?error=${encodeURIComponent(
@@ -91,7 +82,7 @@ async function createLovedOneAction(formData: FormData) {
     );
   }
 
-  // Ensure required fields exist for your existing action
+  // Normalize fields for the existing action (it expects these names)
   formData.set("senior_name", seniorName);
   formData.set("phone_e164", phone);
   formData.set("timezone", timezone);
@@ -102,21 +93,40 @@ async function createLovedOneAction(formData: FormData) {
   formData.set("fc_phone_e164", fcPhone);
   formData.set("fc_email", fcEmail);
 
-  // NOTE: actions.ts expects consent_ip; we can set null/blank safely.
-  // If you want, you can capture IP server-side later via headers.
+  // actions.ts expects consent_ip; safe blank
   if (!formData.get("consent_ip")) formData.set("consent_ip", "");
 
-  try {
-    const res = await createSeniorAndContacts(formData);
-    // Send them straight to the loved-one detail page
-    redirect(`/dashboard/seniors/${encodeURIComponent(res.seniorId)}?created=1`);
-  } catch (e: any) {
-    redirect(
-      `/dashboard/seniors/new?error=${encodeURIComponent(
-        e?.message ?? "Failed to create loved one."
-      )}`
-    );
+  // IMPORTANT: unwrap ActionResult<{seniorId, inviteUrl}>
+  const result = await createSeniorAndContacts(formData);
+
+  if (result && typeof result === "object" && "ok" in result) {
+    if (result.ok) {
+      const seniorId = result.data?.seniorId;
+      if (!seniorId) {
+        redirect(
+          `/dashboard/seniors/new?error=${encodeURIComponent(
+            "Created loved one, but missing seniorId in response."
+          )}`
+        );
+      }
+      redirect(
+        `/dashboard/seniors/${encodeURIComponent(String(seniorId))}?created=1`
+      );
+    } else {
+      redirect(
+        `/dashboard/seniors/new?error=${encodeURIComponent(
+          result.error || "Failed to create loved one."
+        )}`
+      );
+    }
   }
+
+  // Fallback if the action ever changes shape
+  redirect(
+    `/dashboard/seniors/new?error=${encodeURIComponent(
+      "Unexpected response while creating loved one."
+    )}`
+  );
 }
 
 export default async function Page({
@@ -272,7 +282,11 @@ export default async function Page({
               </div>
               <div className="md:col-span-1">
                 <Label>Email</Label>
-                <Input name="fc_email" type="email" placeholder="sarah@email.com" />
+                <Input
+                  name="fc_email"
+                  type="email"
+                  placeholder="sarah@email.com"
+                />
               </div>
             </div>
           </div>
@@ -283,7 +297,8 @@ export default async function Page({
               Consent-first messaging
             </div>
             <div className="mt-1 text-xs text-neutral-600">
-              You confirm you have permission to send messages/calls to this number.
+              You confirm you have permission to send messages/calls to this
+              number.
             </div>
 
             <label className="mt-3 flex items-start gap-3 text-sm text-neutral-700">
@@ -294,16 +309,17 @@ export default async function Page({
                 required
               />
               <span>
-                I confirm that I have consent to send LifeSignal check-ins to this
-                phone number, and I understand message and data rates may apply.
+                I confirm that I have consent to send LifeSignal check-ins to
+                this phone number, and I understand message and data rates may
+                apply.
               </span>
             </label>
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="text-xs text-neutral-500">
-              After creation, you’ll be taken to the loved one page where you can
-              send a test check-in.
+              After creation, you’ll be taken to the loved one page where you
+              can send a test check-in.
             </div>
 
             <Button type="submit">Create loved one</Button>
