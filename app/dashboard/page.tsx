@@ -1,34 +1,33 @@
 ﻿export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import DashboardClientUX from "@/components/dashboard/DashboardClientUX";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { created?: string };
+}) {
   const sb = await supabaseServer();
-
   const {
     data: { user },
-    error: userErr,
   } = await sb.auth.getUser();
 
-  if (userErr || !user) {
-    redirect("/login?next=" + encodeURIComponent("/dashboard"));
-  }
-
+  // Layout already enforces auth; user should exist here.
   const { data: sub } = await sb
     .from("subscriptions")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", user!.id)
     .maybeSingle();
 
   const { data: seniors } = await sb
     .from("seniors")
     .select("*")
-    .eq("owner_user_id", user.id)
+    .eq("owner_user_id", user!.id)
     .order("created_at", { ascending: false });
 
   const lovedOnesCount = (seniors ?? []).length;
@@ -46,15 +45,22 @@ export default async function DashboardPage() {
     ((seniors ?? []).some((s: any) => !!s.checkin_time && !!s.timezone) ? 1 : 0) +
     ((seniors ?? []).some((s: any) => !!s.channel_pref) ? 1 : 0);
 
+  const created = searchParams?.created === "1";
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
+      {/* Client-only niceties: auto-scroll + dismiss */}
+      <DashboardClientUX created={created} />
+
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="text-sm text-neutral-600">
-            Signed in as <span className="font-medium">{user.email}</span>
+            Signed in as <span className="font-medium">{user!.email}</span>
           </div>
 
-          <h1 className="mt-2 text-3xl font-semibold text-brand-navy">LifeSignal Control Panel</h1>
+          <h1 className="mt-2 text-3xl font-semibold text-brand-navy">
+            LifeSignal Control Panel
+          </h1>
 
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900">
@@ -86,16 +92,10 @@ export default async function DashboardPage() {
                 Tools <span className="ml-2 text-xs opacity-60">▼</span>
               </summary>
               <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
-                <Link
-                  href="/admin"
-                  className="block rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
-                >
+                <Link href="/admin" className="block rounded-lg px-3 py-2 text-sm hover:bg-neutral-50">
                   Admin
                 </Link>
-                <Link
-                  href="/pricing"
-                  className="block rounded-lg px-3 py-2 text-sm hover:bg-neutral-50"
-                >
+                <Link href="/pricing" className="block rounded-lg px-3 py-2 text-sm hover:bg-neutral-50">
                   Pricing
                 </Link>
               </div>
@@ -111,7 +111,13 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-10">
+      {created ? (
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
+          ✅ Loved one created. Next: confirm settings and run a test check-in.
+        </div>
+      ) : null}
+
+      <div className="mt-10" id="checklist">
         <Card>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>

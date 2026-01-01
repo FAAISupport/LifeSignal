@@ -1,68 +1,59 @@
 "use server";
 
+import crypto from "crypto";
 import { env } from "@/lib/env";
 import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth";
-import crypto from "crypto";
-import { redirect } from "next/navigation";
 
-type ActionResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
-function cleanStr(v: unknown) {
-  return String(v ?? "").trim();
+function ok<T>(data: T): ActionResult<T> {
+  return { ok: true, data };
 }
 
-function isE164(phone: string) {
-  return /^\+\d{10,15}$/.test(phone);
+function fail<T = never>(error: string): ActionResult<T> {
+  return { ok: false, error };
 }
 
-function safeBaseUrl() {
-  const base = cleanStr(env.APP_BASE_URL || process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_BASE_URL);
-  return base.replace(/\/+$/, "");
+function isE164(v: string) {
+  return /^\+\d{10,15}$/.test((v || "").trim());
 }
 
-/**
- * Used by the "New loved one" wizard page.
- * Returns ok/data so the page can redirect with a friendly error message.
- */
-export async function createSeniorAndContacts(
-  formData: FormData
-): Promise<ActionResult<{ seniorId: string; inviteUrl: string }>> {
+function isHHMM(v: string) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test((v || "").trim());
+}
+
+// Used by the “Add loved one” wizard page.
+// This can return an ActionResult because the page wrapper redirects.
+export async function createSeniorAndContacts(formData: FormData): Promise<ActionResult<{ seniorId: string; inviteUrl: string }>> {
   try {
     const user = await requireUser();
     const sb = await supabaseServer();
 
-    const seniorName = cleanStr(formData.get("senior_name"));
-    const phone = cleanStr(formData.get("phone_e164"));
-    const timezone = cleanStr(formData.get("timezone")) || "America/New_York";
-    const checkinTime = cleanStr(formData.get("checkin_time")) || "09:00";
-    const channelPref = cleanStr(formData.get("channel_pref")) || "sms";
-    const consent = formData.get("consent") === "on";
-    const consentIp = cleanStr(formData.get("consent_ip"));
+    const seniorName = String(formData.get("senior_name") ?? "").trim();
+    const phone = String(formData.get("phone_e164") ?? "").trim();
+    const timezone = String(formData.get("timezone") ?? "America/New_York").trim();
+    const checkinTime = String(formData.get("checkin_time") ?? "09:00").trim();
+    const channelPref = String(formData.get("channel_pref") ?? "sms").trim();
+    const consent = formData.get("consent") === "on" || formData.get("consent") === "true";
+    const consentIp = String(formData.get("consent_ip") ?? "").trim();
     const consentVersion = "v1";
 
-    const fcName = cleanStr(formData.get("fc_name"));
-    const fcPhone = cleanStr(formData.get("fc_phone_e164"));
-    const fcEmail = cleanStr(formData.get("fc_email"));
+    const fcName = String(formData.get("fc_name") ?? "").trim();
+    const fcPhone = String(formData.get("fc_phone_e164") ?? "").trim();
+    const fcEmail = String(formData.get("fc_email") ?? "").trim();
 
-    if (!consent) return { ok: false, error: "Consent is required." };
-    if (!seniorName) return { ok: false, error: "Please enter your loved one’s name." };
-    if (!phone) return { ok: false, error: "Please enter a phone number." };
-    if (!isE164(phone)) return { ok: false, error: "Phone must be in E.164 format (example: +13525551234)." };
-
-    if (!timezone) return { ok: false, error: "Please enter a timezone (example: America/New_York)." };
-    if (!checkinTime) return { ok: false, error: "Please enter a check-in time (example: 09:00)." };
-
-    if (!fcName) return { ok: false, error: "Please enter an escalation contact name." };
-    if (!fcPhone && !fcEmail) {
-      return { ok: false, error: "Please provide at least a phone or email for the escalation contact." };
-    }
-    if (fcPhone && !isE164(fcPhone)) {
-      return { ok: false, error: "Escalation phone must be in E.164 format (example: +13525551234)." };
-    }
+    if (!seniorName) return fail("Loved one name is required.");
+    if (!phone) return fail("Loved one phone number is required.");
+    if (!isE164(phone)) return fail("Loved one phone must be E.164 format (example: +13525551234).");
+    if (!timezone) return fail("Timezone is required (example: America/New_York).");
+    if (!checkinTime || !isHHMM(checkinTime)) return fail("Check-in time must be HH:MM (24h), e.g. 09:00.");
+    if (!["sms", "voice", "both"].includes(channelPref)) return fail("Channel preference must be sms, voice, or both.");
+    if (!fcName) return fail("Escalation contact name is required.");
+    if (!fcPhone && !fcEmail) return fail("Provide at least a phone number or email for the escalation contact.");
+    if (fcPhone && !isE164(fcPhone)) return fail("Escalation phone must be E.164 format (example: +13525551234).");
+    if (!consent) return fail("Consent is required.");
 
     const { data: senior, error: seniorErr } = await sb
       .from("seniors")
@@ -73,18 +64,16 @@ export async function createSeniorAndContacts(
         timezone,
         checkin_time: checkinTime,
         channel_pref: channelPref,
-        enabled: true,
-        messaging_enabled: true,
         consented_at: new Date().toISOString(),
         consent_ip: consentIp || null,
         consent_version: consentVersion,
+        enabled: true,
+        messaging_enabled: true,
       })
-      .select("id")
+      .select("*")
       .single();
 
-    if (seniorErr || !senior?.id) {
-      return { ok: false, error: seniorErr?.message || "Failed to create loved one." };
-    }
+    if (seniorErr) return fail(seniorErr.message);
 
     const { error: fcErr } = await sb.from("family_contacts").insert({
       senior_id: senior.id,
@@ -92,9 +81,11 @@ export async function createSeniorAndContacts(
       phone_e164: fcPhone || null,
       email: fcEmail || null,
       verified: false,
+      notify_on_miss: true,
+      notify_on_help: true,
     });
 
-    if (fcErr) return { ok: false, error: fcErr.message };
+    if (fcErr) return fail(fcErr.message);
 
     const token = crypto.randomBytes(18).toString("hex");
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString();
@@ -105,7 +96,7 @@ export async function createSeniorAndContacts(
       expires_at: expiresAt,
     });
 
-    if (invErr) return { ok: false, error: invErr.message };
+    if (invErr) return fail(invErr.message);
 
     await supabaseAdmin.from("audit_logs").insert({
       actor_user_id: user.id,
@@ -114,38 +105,31 @@ export async function createSeniorAndContacts(
       metadata: { token_created: true },
     });
 
-    const base = safeBaseUrl();
-    const inviteUrl = base
-      ? `${base}/dashboard?s=invite&token=${token}`
-      : `/dashboard?s=invite&token=${token}`;
-
-    return { ok: true, data: { seniorId: senior.id, inviteUrl } };
+    const inviteUrl = `${env.APP_BASE_URL}/dashboard?s=invite&token=${token}`;
+    return ok({ seniorId: String(senior.id), inviteUrl });
   } catch (e: any) {
-    return { ok: false, error: e?.message || "Unexpected error" };
+    return fail(e?.message ?? "Unknown error creating loved one.");
   }
 }
 
-/**
- * MUST return void for <form action={updateSeniorSettings}>
- * On error: redirect back to the same page with a message.
- */
+// IMPORTANT: This MUST return void/Promise<void> so it can be used in <form action={...}>
 export async function updateSeniorSettings(formData: FormData): Promise<void> {
   const user = await requireUser();
   const sb = await supabaseServer();
 
-  const id = cleanStr(formData.get("id"));
-  const timezone = cleanStr(formData.get("timezone")) || "America/New_York";
-  const checkinTime = cleanStr(formData.get("checkin_time")) || "09:00";
-  const channelPref = cleanStr(formData.get("channel_pref")) || "sms";
-  const waitMinutesRaw = Number(formData.get("wait_minutes") ?? 30);
-  const waitMinutes = Number.isFinite(waitMinutesRaw) ? waitMinutesRaw : 30;
+  const id = String(formData.get("id") ?? "").trim();
+  const timezone = String(formData.get("timezone") ?? "America/New_York").trim();
+  const checkinTime = String(formData.get("checkin_time") ?? "09:00").trim();
+  const channelPref = String(formData.get("channel_pref") ?? "sms").trim();
+  const waitMinutes = Number(formData.get("wait_minutes") ?? 30);
 
-  if (!id) {
-    redirect("/dashboard?error=" + encodeURIComponent("Missing loved one id."));
+  if (!id) throw new Error("Missing senior id.");
+  if (!timezone) throw new Error("Timezone is required.");
+  if (!isHHMM(checkinTime)) throw new Error("Check-in time must be HH:MM (24h), e.g. 09:00.");
+  if (!["sms", "voice", "both"].includes(channelPref)) throw new Error("Channel preference must be sms, voice, or both.");
+  if (!Number.isFinite(waitMinutes) || waitMinutes < 5 || waitMinutes > 240) {
+    throw new Error("Wait window must be between 5 and 240 minutes.");
   }
-
-  // Best-effort: find the seniorId page to redirect back to on failure/success
-  const backTo = `/dashboard/seniors/${encodeURIComponent(id)}`;
 
   const { error } = await sb
     .from("seniors")
@@ -158,9 +142,5 @@ export async function updateSeniorSettings(formData: FormData): Promise<void> {
     .eq("id", id)
     .eq("owner_user_id", user.id);
 
-  if (error) {
-    redirect(backTo + "?error=" + encodeURIComponent(error.message));
-  }
-
-  redirect(backTo + "?saved=1");
+  if (error) throw new Error(error.message);
 }
