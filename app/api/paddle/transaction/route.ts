@@ -1,47 +1,87 @@
 import { NextResponse } from "next/server";
-import { getUserAndProfile } from "@/lib/auth";
-import { paddleCreateTransaction, paddlePriceId, type PlanTier, type PlanCadence } from "@/lib/paddle";
-import { env } from "@/lib/env";
+import { env, requirePaddle } from "@/lib/env";
+import { supabaseServer } from "@/lib/supabase/server";
+import { paddleCreateTransaction } from "@/lib/paddle";
+
+/**
+ * Paddle transaction creation endpoint
+ * Creates a transaction ID for Paddle Checkout
+ */
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const { user } = await getUserAndProfile();
-
-  const body = await req.json().catch(() => ({} as any));
-  const tier = String(body?.tier ?? "checkin").toLowerCase() as PlanTier;
-  const cadenceRaw = String(body?.cadence ?? "monthly").toLowerCase();
-  const cadence = (cadenceRaw === "yearly" ? "annual" : cadenceRaw) as PlanCadence;
-
-  const allowedTiers: PlanTier[] = ["checkin", "assurance", "facility"];
-  const allowedCadences: PlanCadence[] = ["monthly", "annual"];
-
-  if (!allowedTiers.includes(tier)) {
-    return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
-  }
-  if (!allowedCadences.includes(cadence)) {
-    return NextResponse.json({ error: "Invalid cadence" }, { status: 400 });
+  // Ensure Paddle is configured
+  try {
+    requirePaddle();
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e.message ?? "Paddle not configured" },
+      { status: 500 }
+    );
   }
 
-  const priceId = paddlePriceId(tier, cadence);
+  const sb = supabaseServer();
+  const {
+    data: { user },
+    error: authError,
+  } = await sb.auth.getUser();
 
-  // attach metadata so webhooks can link back to our user and plan
-  const tx = await paddleCreateTransaction({
-    priceId,
-    customerEmail: user.email ?? "",
-    customData: {
-      app: "lifesignal",
-      user_id: user.id,
-      plan_tier: tier,
-      plan_cadence: cadence
-    }
-  });
-
-  const transactionId = tx?.data?.id;
-  if (!transactionId) {
-    return NextResponse.json({ error: "Missing transaction id from Paddle" }, { status: 502 });
+  if (authError || !user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json({
-    transactionId,
-    environment: env.NEXT_PUBLIC_PADDLE_ENV
-  });
+  const body = await req.json();
+  const { tier, cadence } = body as {
+    tier?: "checkin" | "assurance" | "facility";
+    cadence?: "monthly" | "annual";
+  };
+
+  if (!tier || !cadence) {
+    return NextResponse.json(
+      { error: "Missing tier or cadence" },
+      { status: 400 }
+    );
+  }
+
+  // Resolve Paddle price ID
+  const priceMap: Record<string, string | undefined> = {
+    checkin_monthly: env.PADDLE_PRICE_CHECKIN_MONTHLY,
+    checkin_annual: env.PADDLE_PRICE_CHECKIN_ANNUAL,
+    assurance_monthly: env.PADDLE_PRICE_ASSURANCE_MONTHLY,
+    assurance_annual: env.PADDLE_PRICE_ASSURANCE_ANNUAL,
+    facility_monthly: env.PADDLE_PRICE_FACILITY_MONTHLY,
+    facility_annual: env.PADDLE_PRICE_FACILITY_ANNUAL,
+  };
+
+  const priceKey = `${tier}_${cadence}`;
+  const priceId = priceMap[priceKey];
+
+  if (!priceId) {
+    return NextResponse.json(
+      { error: `Invalid price configuration for ${priceKey}` },
+      { status: 500 }
+    );
+  }
+
+  try {
+    const tx = await paddleCreateTransaction({
+      priceId,
+      customerEmail: user.email ?? "",
+      customData: {
+        app: "lifesignal",
+        user_id: user.id,
+        tier,
+        cadence,
+      },
+    });
+
+    return NextResponse.json({
+      transactionId: tx.id,
+    });
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message ?? "Failed to create Paddle transaction" },
+      { status: 500 }
+    );
+  }
 }
