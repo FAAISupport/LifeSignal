@@ -2,10 +2,18 @@
 export const revalidate = 0;
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import DashboardClientUX from "@/components/dashboard/DashboardClientUX";
+
+async function logoutAction() {
+  "use server";
+  const sb = await supabaseServer();
+  await sb.auth.signOut();
+  redirect("/login");
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -17,7 +25,7 @@ export default async function DashboardPage({
     data: { user },
   } = await sb.auth.getUser();
 
-  // Layout already enforces auth; user should exist here.
+  // Dashboard layout enforces auth; user should exist here.
   const { data: sub } = await sb
     .from("subscriptions")
     .select("*")
@@ -49,7 +57,7 @@ export default async function DashboardPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      {/* Client-only niceties: auto-scroll + dismiss */}
+      {/* Client-only niceties: auto-scroll */}
       <DashboardClientUX created={created} />
 
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -102,12 +110,15 @@ export default async function DashboardPage({
             </details>
           </div>
 
-          <Link
-            href="/logout"
-            className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium transition hover:bg-neutral-50"
-          >
-            Log out
-          </Link>
+          {/* IMPORTANT: Use POST (server action) to avoid Link prefetch logging you out */}
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium transition hover:bg-neutral-50"
+            >
+              Log out
+            </button>
+          </form>
         </div>
       </div>
 
