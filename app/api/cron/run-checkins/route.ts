@@ -9,6 +9,7 @@ function authCron(req: Request) {
     req.headers.get("x-cron-token") ||
     new URL(req.url).searchParams.get("token") ||
     "";
+
   return token === requireCronToken();
 }
 
@@ -18,12 +19,13 @@ async function subscriptionActive(ownerUserId: string) {
     .select("*")
     .eq("user_id", ownerUserId)
     .maybeSingle();
+
   if (!sub) return false;
   return ["active", "trialing"].includes(String(sub.status));
 }
 
 function computeScheduledForUtc(tz: string, hhmm: string) {
-  const [hh, mm] = hhmm.split(":").map((x) => Number(x));
+  const [hh, mm] = hhmm.split(":").map(Number);
   const nowLocal = DateTime.now().setZone(tz);
   const scheduledLocal = nowLocal.set({
     hour: hh,
@@ -31,6 +33,7 @@ function computeScheduledForUtc(tz: string, hhmm: string) {
     second: 0,
     millisecond: 0,
   });
+
   return {
     nowLocal,
     scheduledLocal,
@@ -48,8 +51,9 @@ function isDueWithinWindow(
 }
 
 export async function GET(req: Request) {
-  if (!authCron(req))
+  if (!authCron(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
 
   const { data: seniors } = await supabaseAdmin
     .from("seniors")
@@ -60,24 +64,23 @@ export async function GET(req: Request) {
   const results: any[] = [];
 
   for (const s of seniors ?? []) {
-    const allowed = s.beta_override || (await subscriptionActive(s.owner_user_id));
+    const allowed =
+      s.beta_override || (await subscriptionActive(s.owner_user_id));
     if (!allowed) continue;
 
-    const { nowLocal, scheduledLocal, scheduledUtcIso } = computeScheduledForUtc(
-      s.timezone,
-      s.checkin_time
-    );
+    const { nowLocal, scheduledLocal, scheduledUtcIso } =
+      computeScheduledForUtc(s.timezone, s.checkin_time);
 
-    // Run every 5 minutes: due window is 5
+    // Runs every 5 minutes
     if (!isDueWithinWindow(nowLocal, scheduledLocal, 5)) continue;
 
-    // Avoid duplicate check-in for the same scheduledLocal today
+    // Prevent duplicate check-ins for the same day
     const dayStartUtc = scheduledLocal.startOf("day").toUTC().toISO()!;
     const dayEndUtc = scheduledLocal.endOf("day").toUTC().toISO()!;
 
     const { data: existing } = await supabaseAdmin
       .from("checkins")
-      .select("id,scheduled_for")
+      .select("id")
       .eq("senior_id", s.id)
       .gte("scheduled_for", dayStartUtc)
       .lte("scheduled_for", dayEndUtc)
@@ -104,7 +107,6 @@ export async function GET(req: Request) {
       "LifeSignal check-in: Reply YES if you're okay. Reply STOP to stop.";
 
     try {
-      // Only require Twilio config when we actually need to send
       const TWILIO_FROM = getTwilioFromNumber();
       const twilioClient = getTwilioClient();
 
@@ -149,7 +151,10 @@ export async function GET(req: Request) {
         actor_user_id: null,
         senior_id: s.id,
         action: "checkin_sent",
-        metadata: { checkin_id: checkin.id, channel_pref: s.channel_pref },
+        metadata: {
+          checkin_id: checkin.id,
+          channel_pref: s.channel_pref,
+        },
       });
 
       results.push({ senior: s.id, checkin: checkin.id, ok: true });
