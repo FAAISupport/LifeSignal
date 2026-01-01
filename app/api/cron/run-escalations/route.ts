@@ -8,11 +8,31 @@ function authCron(req: Request) {
     req.headers.get("x-cron-token") ||
     new URL(req.url).searchParams.get("token") ||
     "";
-  return token === env.CRON_SECRET_TOKEN;
+  return token === requireCronToken();
 }
 
-export async function GET(req: Request) {
+export async function GETexport async function GET(req: Request) {
   if (!authCron(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  if (!env.TWILIO_FROM_NUMBER) {
+    return NextResponse.json(
+      { error: "TWILIO_FROM_NUMBER is not set" },
+      { status: 500 }
+    );
+  }
+
+  // Pull pending check-ins up to a safe cap; evaluate wait window per senior
+  const oldest = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(); // look back 6h
+  const { data: pending } = await supabaseAdmin
+    .from("checkins")
+    .select("*, seniors(*)")
+    .eq("status", "pending")
+    .gte("scheduled_for", oldest)
+    .limit(500);
+
+  // ... keep the rest of your code exactly the same
+
+
 
   // Pull pending check-ins up to a safe cap; evaluate wait window per senior
   const oldest = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(); // look back 6h
