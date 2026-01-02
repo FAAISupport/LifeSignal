@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/Button";
 import { createSeniorAndContacts } from "../../actions";
 
 /**
- * IMPORTANT:
- * - Auth is checked HERE (page boundary)
- * - Server action does NOT call requireUser()
- * - This prevents post-submit login bounce
+ * Fixes:
+ * - ActionResult unwrap (res.ok / res.data)
+ * - Prevents TS error: "Property 'seniorId' does not exist..."
+ * - Keeps auth guard at page boundary
  */
 
 export default async function Page({
@@ -23,28 +23,29 @@ export default async function Page({
 
   const {
     data: { user },
+    error: userErr,
   } = await sb.auth.getUser();
 
-  // Guard page access ONLY
-  if (!user) {
+  if (userErr || !user) {
     redirect("/login?next=/dashboard/seniors/new");
   }
 
   async function action(formData: FormData) {
     "use server";
 
-    try {
-      const res = await createSeniorAndContacts(formData);
+    const res = await createSeniorAndContacts(formData);
 
-      // SUCCESS → go to loved one detail page
-      redirect(`/dashboard/seniors/${res.seniorId}?created=1`);
-    } catch (e: any) {
+    if (!res.ok) {
       redirect(
         `/dashboard/seniors/new?error=${encodeURIComponent(
-          e?.message ?? "Unable to create loved one"
+          res.error || "Unable to create loved one"
         )}`
       );
     }
+
+    redirect(
+      `/dashboard/seniors/${encodeURIComponent(res.data.seniorId)}?created=1`
+    );
   }
 
   return (
@@ -137,14 +138,19 @@ export default async function Page({
             </div>
           </div>
 
-          {/* ESCALATION CONTACT */}
+          {/* ESCALATION CONTACT (optional) */}
           <div>
             <h2 className="font-medium text-brand-navy">Escalation contact</h2>
+
+            <div className="mt-1 text-xs text-neutral-500">
+              Optional — but recommended. If you fill any field here, include a
+              name and at least a phone or email.
+            </div>
 
             <div className="mt-3 grid gap-4">
               <div>
                 <Label>Contact name</Label>
-                <Input name="fc_name" placeholder="e.g. Sara" required />
+                <Input name="fc_name" placeholder="e.g. Sara" />
               </div>
 
               <div>
@@ -155,10 +161,6 @@ export default async function Page({
               <div>
                 <Label>Contact email</Label>
                 <Input name="fc_email" placeholder="name@example.com" />
-              </div>
-
-              <div className="text-xs text-neutral-500">
-                Provide at least a phone number or an email.
               </div>
             </div>
           </div>
@@ -172,6 +174,9 @@ export default async function Page({
                 voice for daily safety check-ins.
               </span>
             </label>
+
+            {/* keep field for storage even if blank */}
+            <input type="hidden" name="consent_ip" value="" />
           </div>
 
           <Button type="submit" className="w-full">
