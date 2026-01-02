@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
-import { createSeniorAndContacts } from "../actions";
+import { createSeniorAndContacts } from "../../actions";
 
 /**
  * IMPORTANT:
@@ -75,9 +75,7 @@ export default async function Page({
         <form action={action} className="mt-6 grid gap-6">
           {/* STEP 1 */}
           <div>
-            <h2 className="font-medium text-brand-navy">
-              Loved one details
-            </h2>
+            <h2 className="font-medium text-brand-navy">Loved one details</h2>
 
             <div className="mt-3 grid gap-4">
               <div>
@@ -121,11 +119,7 @@ export default async function Page({
 
               <div>
                 <Label>Daily check-in time</Label>
-                <Input
-                  name="checkin_time"
-                  defaultValue="09:00"
-                  required
-                />
+                <Input name="checkin_time" defaultValue="09:00" required />
               </div>
             </div>
 
@@ -145,9 +139,7 @@ export default async function Page({
 
           {/* ESCALATION CONTACT */}
           <div>
-            <h2 className="font-medium text-brand-navy">
-              Escalation contact
-            </h2>
+            <h2 className="font-medium text-brand-navy">Escalation contact</h2>
 
             <div className="mt-3 grid gap-4">
               <div>
@@ -164,21 +156,20 @@ export default async function Page({
                 <Label>Contact email</Label>
                 <Input name="fc_email" placeholder="name@example.com" />
               </div>
+
+              <div className="text-xs text-neutral-500">
+                Provide at least a phone number or an email.
+              </div>
             </div>
           </div>
 
           {/* CONSENT */}
           <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
             <label className="flex gap-3 text-sm">
-              <input
-                type="checkbox"
-                name="consent"
-                required
-                className="mt-1"
-              />
+              <input type="checkbox" name="consent" required className="mt-1" />
               <span>
-                I confirm I have permission to contact this loved one
-                via SMS or voice for daily safety check-ins.
+                I confirm I have permission to contact this loved one via SMS or
+                voice for daily safety check-ins.
               </span>
             </label>
           </div>
