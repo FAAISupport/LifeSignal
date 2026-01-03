@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { createSeniorAndContacts } from "../../actions";
 
 /**
- * Fixes:
- * - ActionResult unwrap (res.ok / res.data)
- * - Prevents TS error: "Property 'seniorId' does not exist..."
- * - Keeps auth guard at page boundary
+ * FIX:
+ * createSeniorAndContacts returns ActionResult
+ * so we must unwrap (res.ok / res.data) before redirect.
  */
 
 export default async function Page({
@@ -52,13 +51,8 @@ export default async function Page({
     <div className="mx-auto max-w-3xl space-y-6">
       <Card>
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-brand-navy">
-            Create a profile
-          </h1>
-          <Link
-            href="/dashboard"
-            className="text-sm text-neutral-600 hover:underline"
-          >
+          <h1 className="text-xl font-semibold text-brand-navy">Create a profile</h1>
+          <Link href="/dashboard" className="text-sm text-neutral-600 hover:underline">
             ← Back to dashboard
           </Link>
         </div>
@@ -90,11 +84,7 @@ export default async function Page({
 
               <div>
                 <Label>Phone (E.164)</Label>
-                <Input
-                  name="phone_e164"
-                  placeholder="+13525551234"
-                  required
-                />
+                <Input name="phone_e164" placeholder="+13525551234" required />
                 <div className="mt-1 text-xs text-neutral-500">
                   Must include country code
                 </div>
@@ -104,9 +94,7 @@ export default async function Page({
 
           {/* STEP 2 */}
           <div>
-            <h2 className="font-medium text-brand-navy">
-              Check-in preferences
-            </h2>
+            <h2 className="font-medium text-brand-navy">Check-in preferences</h2>
 
             <div className="mt-3 grid gap-4 md:grid-cols-2">
               <div>
@@ -175,7 +163,6 @@ export default async function Page({
               </span>
             </label>
 
-            {/* keep field for storage even if blank */}
             <input type="hidden" name="consent_ip" value="" />
           </div>
 
