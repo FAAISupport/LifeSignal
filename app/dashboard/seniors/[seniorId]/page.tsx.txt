@@ -1,0 +1,206 @@
+// app/dashboard/seniors/[seniorId]/page.tsx
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { supabaseServer } from "@/lib/supabase/server";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Button } from "@/components/ui/Button";
+import { updateSeniorSettings, activateMonitoringForm } from "../../actions";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+type SearchParams = {
+  error?: string;
+  saved?: string;
+  monitoring?: string;
+};
+
+export default async function SeniorPage({
+  params,
+  searchParams,
+}: {
+  params: { seniorId: string };
+  searchParams?: SearchParams;
+}) {
+  const sb = await supabaseServer();
+
+  const {
+    data: { user },
+    error: userErr,
+  } = await sb.auth.getUser();
+
+  if (userErr || !user) {
+    redirect(`/login?next=/dashboard/seniors/${encodeURIComponent(params.seniorId)}`);
+  }
+
+  // ✅ Correct schema: owner_user_id + enabled
+  const { data: senior, error: seniorErr } = await sb
+    .from("seniors")
+    .select(
+      "id,name,phone_e164,timezone,checkin_time,channel_pref,enabled,wait_minutes,created_at"
+    )
+    .eq("id", params.seniorId)
+    .eq("owner_user_id", user.id)
+    .single();
+
+  if (seniorErr || !senior) {
+    redirect(`/dashboard?error=${encodeURIComponent("Loved one not found")}`);
+  }
+
+  async function saveAction(formData: FormData) {
+    "use server";
+
+    // updateSeniorSettings(formData) reads seniorId from the form
+    formData.set("seniorId", String(senior.id));
+
+    const res = await updateSeniorSettings(formData);
+
+    if (!res.ok) {
+      redirect(
+        `/dashboard/seniors/${encodeURIComponent(String(senior.id))}?error=${encodeURIComponent(
+          res.error || "Unable to save"
+        )}`
+      );
+    }
+
+    redirect(`/dashboard/seniors/${encodeURIComponent(String(senior.id))}?saved=1`);
+  }
+
+  const banner =
+    searchParams?.error
+      ? { kind: "error" as const, message: decodeURIComponent(searchParams.error) }
+      : searchParams?.saved
+      ? { kind: "success" as const, message: "Saved." }
+      : searchParams?.monitoring === "on"
+      ? { kind: "success" as const, message: "Monitoring enabled." }
+      : null;
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">{senior.name || "Loved one"}</h1>
+          <div className="mt-1 text-sm text-slate-600">{senior.phone_e164 || "—"}</div>
+        </div>
+
+        <Link href="/dashboard" className="text-sm text-slate-600 hover:underline">
+          ← Back to dashboard
+        </Link>
+      </div>
+
+      {banner ? (
+        <div
+          className={[
+            "rounded-xl border px-4 py-3 text-sm",
+            banner.kind === "error"
+              ? "border-amber-200 bg-amber-50 text-amber-900"
+              : "border-emerald-200 bg-emerald-50 text-emerald-900",
+          ].join(" ")}
+        >
+          {banner.message}
+        </div>
+      ) : null}
+
+      {/* Settings */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-base font-semibold text-slate-900">Settings</div>
+            <div className="text-sm text-slate-600">Update details any time.</div>
+          </div>
+
+          <div
+            className={[
+              "inline-flex rounded-full px-2 py-1 text-xs font-medium",
+              senior.enabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-700",
+            ].join(" ")}
+          >
+            Monitoring: {senior.enabled ? "ON" : "OFF"}
+          </div>
+        </div>
+
+        <form action={saveAction} className="mt-5 grid gap-4">
+          <input type="hidden" name="seniorId" value={String(senior.id)} />
+
+          <div>
+            <Label>Name</Label>
+            <Input name="name" defaultValue={senior.name || ""} />
+          </div>
+
+          <div>
+            <Label>Phone (E.164)</Label>
+            <Input name="phone_e164" defaultValue={senior.phone_e164 || ""} />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label>Timezone</Label>
+              <Input name="timezone" defaultValue={senior.timezone || "America/New_York"} />
+            </div>
+
+            <div>
+              <Label>Daily check-in time</Label>
+              <Input name="checkin_time" defaultValue={senior.checkin_time || "09:00"} />
+            </div>
+          </div>
+
+          <div>
+            <Label>Channel preference</Label>
+            <select
+              name="channel_pref"
+              defaultValue={senior.channel_pref || "sms"}
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value="sms">SMS</option>
+              <option value="voice">Voice</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+
+          <div>
+            <Label>Wait minutes (optional)</Label>
+            <Input
+              name="wait_minutes"
+              defaultValue={typeof senior.wait_minutes === "number" ? String(senior.wait_minutes) : ""}
+              placeholder="e.g. 10"
+            />
+            <div className="mt-1 text-xs text-neutral-500">
+              Minutes to wait after a missed check-in before escalation.
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full">
+            Save changes
+          </Button>
+        </form>
+      </Card>
+
+      {/* Monitoring */}
+      <Card className="p-6">
+        <div className="text-base font-semibold text-slate-900">Monitoring</div>
+        <div className="mt-1 text-sm text-slate-600">
+          Enable monitoring to start daily check-ins (cron/Twilio comes next).
+        </div>
+
+        {senior.enabled ? (
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            Monitoring is currently enabled.
+          </div>
+        ) : (
+          <form action={activateMonitoringForm} className="mt-4 space-y-3">
+            <input type="hidden" name="seniorId" value={String(senior.id)} />
+
+            <label className="flex items-start gap-3 text-sm text-slate-800">
+              <input type="checkbox" name="confirm" required className="mt-1" />
+              <span>I want to enable monitoring for this loved one.</span>
+            </label>
+
+            <Button type="submit">Enable monitoring</Button>
+          </form>
+        )}
+      </Card>
+    </div>
+  );
+}
