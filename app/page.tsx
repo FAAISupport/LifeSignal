@@ -23,7 +23,7 @@ export default function HomePage() {
               <Button>Start with Check-In</Button>
             </Link>
             <Link href="/how-it-works">
-              <Button variant="soft">See how it works</Button>
+              <Button variant="secondary">See how it works</Button>
             </Link>
           </div>
 
