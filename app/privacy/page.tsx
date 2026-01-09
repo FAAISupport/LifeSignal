@@ -1,19 +1,60 @@
-﻿export default function Page() {
+﻿export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-3xl font-semibold text-brand-navy">Privacy</h1>
+    <main className="mx-auto max-w-3xl px-6 py-16">
+      <h1 className="text-3xl font-semibold mb-6">Privacy Policy</h1>
+
+      <p className="mb-4 text-neutral-700">
+        This Privacy Policy explains how LifeSignal (“we,” “us,” or “our”)
+        collects, uses, and protects personal information when you use our
+        platform.
+      </p>
+
+      <h2 className="text-2xl font-semibold mt-10 mb-4">
+        Relationship to Terms
+      </h2>
+      <p className="mb-4 text-neutral-700">
+        This Privacy Policy forms part of our Terms of Service. By using
+        LifeSignal, you agree to both this Privacy Policy and our Terms.
+      </p>
+
+      <h2 className="text-2xl font-semibold mt-10 mb-4">
+        Information We Collect
+      </h2>
+      <p className="mb-4 text-neutral-700">
+        We collect only the information necessary to operate LifeSignal,
+        including contact information, account details, and service interaction
+        data.
+      </p>
+
+      <h2 className="text-2xl font-semibold mt-10 mb-4">
+        Payments & Third Parties
+      </h2>
+      <p className="mb-4 text-neutral-700">
+        LifeSignal does not store or process payment card information.
+      </p>
+
+      <p className="mb-4 text-neutral-700">
+        All payment transactions are handled securely by our payment provider,
+        <strong> Paddle</strong>, who acts as the Merchant of Record. Paddle may
+        collect and process personal and payment data in accordance with their
+        own privacy policies and Buyer Terms.
+      </p>
+
+      <h2 className="text-2xl font-semibold mt-10 mb-4">
+        Data Use & Protection
+      </h2>
+      <p className="mb-4 text-neutral-700">
+        We use reasonable administrative and technical safeguards to protect
+        your information. However, no system can be guaranteed to be completely
+        secure.
+      </p>
+
+      <h2 className="text-2xl font-semibold mt-10 mb-4">Contact</h2>
       <p className="text-neutral-700">
-        LifeSignal collects only what we need to deliver daily check-ins and notify designated contacts if a check-in is missed.
+        Privacy questions or requests may be sent to:
+        <br />
+        <strong>support@lifesignal.app</strong>
       </p>
-      <div className="space-y-3 text-sm text-neutral-700">
-        <p><span className="font-semibold text-brand-navy">What we store:</span> account email, senior profile details, check-in preferences, contact phone numbers, and check-in activity logs.</p>
-        <p><span className="font-semibold text-brand-navy">What we donâ€™t do:</span> sell personal information, run advertising profiles, or share phone numbers outside of your configured contacts and messaging providers.</p>
-        <p><span className="font-semibold text-brand-navy">Messaging providers:</span> SMS and voice are delivered through Twilio. Payments are processed through Paddle.</p>
-      </div>
-      <p className="text-xs text-neutral-500">
-        This page is informational and not legal advice. Update it with your counsel before broad launch.
-      </p>
-    </div>
+    </main>
   );
 }
-
