@@ -16,19 +16,28 @@ body {
 }
 
 @layer components {
+  /* Small “badge” text used on marketing/auth pages */
   .pill {
-    @apply inline-flex items-center rounded-full border border-brand-blue/15 bg-brand-blue/10 px-3 py-1 text-xs font-semibold tracking-wide text-brand-navy;
+    @apply inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold tracking-wide;
+    border-color: rgb(37 99 235 / 0.15);      /* brand-blue @ 15% */
+    background-color: rgb(37 99 235 / 0.10);  /* brand-blue @ 10% */
+    color: rgb(11 27 58 / 1);                 /* brand-navy */
   }
 
+  /* Marketing hero headline/subhead helpers */
   .headline {
-    @apply text-4xl font-semibold tracking-tight text-brand-navy md:text-5xl;
+    @apply text-4xl font-semibold tracking-tight md:text-5xl;
+    color: rgb(11 27 58 / 1);                 /* brand-navy */
   }
 
   .subhead {
     @apply text-base leading-relaxed text-neutral-700 md:text-lg;
   }
 
+  /* Subtle frosted “glass” surface */
   .glass {
-    @apply rounded-3xl border border-brand-blue/10 bg-white/70 backdrop-blur shadow-sm;
+    @apply rounded-3xl border backdrop-blur shadow-sm;
+    border-color: rgb(37 99 235 / 0.10);      /* brand-blue @ 10% */
+    background-color: rgb(255 255 255 / 0.70);
   }
 }
