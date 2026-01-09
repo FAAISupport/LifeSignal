@@ -1,12 +1,6 @@
-// app/layout.tsx
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
-
-export const metadata = {
-  title: "LifeSignal",
-  description: "Daily check-ins with escalation to family when it matters.",
-};
+import SiteFooter from "@/components/SiteFooter";
 
 export default function RootLayout({
   children,
@@ -15,17 +9,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="flex min-h-screen flex-col bg-neutral-50 text-neutral-900">
-        {/* Header */}
-        <SiteHeader />
+      <body className="min-h-screen bg-white text-gray-900">
+        <div className="flex min-h-screen flex-col">
+          <SiteHeader />
 
-        {/* Main content */}
-        <main className="flex-1">
-          {children}
-        </main>
+          <main className="flex-1">
+            {children}
+          </main>
 
-        {/* Footer (ALWAYS at bottom) */}
-        <SiteFooter />
+          <SiteFooter />
+        </div>
       </body>
     </html>
   );
