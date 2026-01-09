@@ -3,7 +3,10 @@
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "outline";
 export type ButtonSize = "sm" | "md" | "lg";
 
-export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+export type ButtonProps = Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "size"
+> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
 };
@@ -20,23 +23,20 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center rounded-md font-medium transition-colors " +
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 " +
+    "inline-flex items-center justify-center rounded-2xl font-medium transition " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white " +
     "disabled:pointer-events-none disabled:opacity-50";
 
   const variants: Record<ButtonVariant, string> = {
-    primary:
-      "bg-black text-white hover:opacity-90 focus-visible:ring-black ring-offset-white",
-    secondary:
-      "bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-300 ring-offset-white",
-    ghost:
-      "bg-transparent text-gray-900 hover:bg-gray-100 focus-visible:ring-gray-300 ring-offset-white",
+    primary: "bg-brand-navy text-white hover:opacity-95",
+    secondary: "bg-brand-blue/10 text-brand-navy hover:bg-brand-blue/15",
+    ghost: "bg-transparent text-brand-navy hover:bg-brand-blue/10",
     outline:
-      "bg-transparent border border-gray-300 text-gray-900 hover:bg-gray-100 focus-visible:ring-gray-300 ring-offset-white",
+      "bg-transparent border border-brand-blue/30 text-brand-navy hover:bg-brand-blue/10",
   };
 
   const sizes: Record<ButtonSize, string> = {
-    sm: "h-8 px-3 text-sm",
+    sm: "h-9 px-3 text-sm",
     md: "h-10 px-4 text-sm",
     lg: "h-12 px-6 text-base",
   };

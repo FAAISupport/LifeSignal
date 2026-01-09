@@ -10,3 +10,30 @@ body {
 :root {
   color-scheme: light;
 }
+
+@layer base {
+  body {
+    @apply bg-white text-neutral-900 antialiased;
+  }
+}
+
+@layer components {
+  /* Small “badge” text used on marketing/auth pages */
+  .pill {
+    @apply inline-flex items-center rounded-full border border-brand-blue/15 bg-brand-blue/10 px-3 py-1 text-xs font-semibold tracking-wide text-brand-navy;
+  }
+
+  /* Marketing hero headline/subhead helpers */
+  .headline {
+    @apply text-4xl font-semibold tracking-tight text-brand-navy md:text-5xl;
+  }
+
+  .subhead {
+    @apply text-base leading-relaxed text-neutral-700 md:text-lg;
+  }
+
+  /* Subtle frosted “glass” surface */
+  .glass {
+    @apply rounded-3xl border border-brand-blue/10 bg-white/70 backdrop-blur shadow-sm;
+  }
+}
