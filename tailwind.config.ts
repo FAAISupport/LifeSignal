@@ -9,11 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // LifeSignal brand palette
-        "brand-navy": "#0B1B3A",
-        "brand-blue": "#2563EB",
-        "brand-lavender": "#C7C3FF",
-        "brand-mist": "#F5F7FF",
+        // Use <alpha-value> so /10 /15 /25 modifiers work in Tailwind v4
+        "brand-navy": "rgb(11 27 58 / <alpha-value>)",
+        "brand-blue": "rgb(37 99 235 / <alpha-value>)",
+        "brand-lavender": "rgb(199 195 255 / <alpha-value>)",
+        "brand-mist": "rgb(245 247 255 / <alpha-value>)",
       },
     },
   },
