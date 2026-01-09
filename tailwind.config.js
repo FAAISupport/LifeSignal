@@ -1,15 +1,14 @@
-import type { Config } from "tailwindcss";
-
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
-    "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./lib/**/*.{ts,tsx}",
+    "./app/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
+    "./lib/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
       colors: {
-        // Use <alpha-value> so /10 /15 /25 modifiers work in Tailwind v4
+        // Tailwind v4: define colors with <alpha-value> so /10 /15 /25 works
         "brand-navy": "rgb(11 27 58 / <alpha-value>)",
         "brand-blue": "rgb(37 99 235 / <alpha-value>)",
         "brand-lavender": "rgb(199 195 255 / <alpha-value>)",
@@ -19,5 +18,3 @@ const config: Config = {
   },
   plugins: [],
 };
-
-export default config;
