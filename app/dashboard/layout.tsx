@@ -1,21 +1,30 @@
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-import { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+
 import { supabaseServer } from "@/lib/supabase/server";
 
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const sb = await supabaseServer();
-  const {
-    data: { user },
-    error,
-  } = await sb.auth.getUser();
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // Single source of truth: if you're in /dashboard, you're authed.
-  if (error || !user) {
-    redirect("/login?next=" + encodeURIComponent("/dashboard"));
+  if (!user) redirect("/login?next=/dashboard");
+
+  async function signOut() {
+    "use server";
+    const supabase = await supabaseServer();
+    await supabase.auth.signOut();
+    redirect("/");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-white">
+      <header className="border-b p-4 flex justify-between">
+        <Link href="/dashboard">Dashboard</Link>
+        <form action={signOut}>
+          <button>Log out</button>
+        </form>
+      </header>
+      <main className="p-6">{children}</main>
+    </div>
+  );
 }
