@@ -1,6 +1,6 @@
-// app/dashboard/actions.ts
 "use server";
 
+// app/dashboard/actions.ts
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -26,11 +26,6 @@ function isE164(phone: string) {
   return /^\+\d{8,15}$/.test(phone);
 }
 
-function toIntOrNull(v: string) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
 async function requireAuthedUser() {
   const sb = await supabaseServer();
   const {
@@ -44,7 +39,6 @@ async function requireAuthedUser() {
 
 async function hasBetaOverride(sb: any, userId: string) {
   // If any senior on the account is flagged beta_override, allow access even without a paid plan.
-  // (Keeps your existing cron logic consistent.)
   const { data } = await sb
     .from("seniors")
     .select("id")
@@ -68,7 +62,7 @@ async function requireActiveSubscription(sb: any, userId: string) {
 }
 
 /**
- * Create loved one + optional escalation contact (DB-only).
+ * Create loved one (DB-only).
  */
 export async function createSeniorAndContacts(
   formData: FormData
@@ -101,9 +95,6 @@ export async function createSeniorAndContacts(
     const forwardedFor = h.get("x-forwarded-for") || "";
     const consent_ip = forwardedFor.split(",")[0]?.trim() || null;
 
-    // Canonical ownership + monitoring flag:
-    // - seniors.owner_user_id = auth.user.id
-    // - seniors.enabled (not monitoring_enabled)
     const { data: seniorRow, error: seniorErr } = await sb
       .from("seniors")
       .insert({
@@ -120,39 +111,9 @@ export async function createSeniorAndContacts(
       .select("id")
       .single();
 
-    if (seniorErr || !seniorRow?.id) {
-      return { ok: false, error: seniorErr?.message || "Unable to create loved one." };
-    }
-
-    const seniorId = seniorRow.id as string;
-
-    const fc_name = getString(formData, "fc_name");
-    const fc_phone_e164 = getString(formData, "fc_phone_e164");
-    const fc_email = getString(formData, "fc_email");
-
-    const anyFC = !!(fc_name || fc_phone_e164 || fc_email);
-    if (anyFC) {
-      if (!fc_name) {
-        return { ok: false, error: "Escalation contact name is required if you fill any contact field." };
-      }
-      if (!fc_phone_e164 && !fc_email) {
-        return { ok: false, error: "Escalation contact needs at least a phone or email." };
-      }
-      if (fc_phone_e164 && !isE164(fc_phone_e164)) {
-        return { ok: false, error: "Escalation phone must be E.164 format (e.g. +13524809565)." };
-      }
-
-      const { error: fcErr } = await sb.from("family_contacts").insert({
-        senior_id: seniorId,
-        name: fc_name,
-        phone_e164: fc_phone_e164 || null,
-        email: fc_email || null,
-        kind: "escalation",
-        notify_on_miss: true,
-      });
-
-      if (fcErr) return { ok: false, error: fcErr.message };
-    }
+    if (seniorErr) return { ok: false, error: seniorErr.message };
+    const seniorId = seniorRow?.id as string | undefined;
+    if (!seniorId) return { ok: false, error: "Failed to create loved one." };
 
     return { ok: true, data: { seniorId } };
   } catch (e: any) {
@@ -161,70 +122,59 @@ export async function createSeniorAndContacts(
 }
 
 /**
- * Update a loved one's settings (DB-only).
- * NOTE: Keeping this available to signed-in users even if subscription expires,
- * so they can correct details or turn things off.
+ * Update senior settings.
  */
 export async function updateSeniorSettings(
   formData: FormData
-): Promise<ActionResult<{ seniorId: string }>> {
+): Promise<ActionResult<{ id: string }>> {
   try {
     const { sb, user } = await requireAuthedUser();
+    await requireActiveSubscription(sb, user.id);
 
-    const seniorId = getString(formData, "seniorId") || getString(formData, "id");
-    if (!seniorId) return { ok: false, error: "Missing seniorId" };
+    const id = getString(formData, "id");
+    if (!id) return { ok: false, error: "Missing id." };
 
-    const name = getString(formData, "name") || getString(formData, "senior_name");
+    const name = getString(formData, "name");
     const phone_e164 = getString(formData, "phone_e164");
     const timezone = getString(formData, "timezone");
     const checkin_time = getString(formData, "checkin_time");
-    const channel_pref = (getString(formData, "channel_pref") || "").toLowerCase();
-    const wait_minutes_raw = getString(formData, "wait_minutes");
+    const channel_pref = getString(formData, "channel_pref").toLowerCase();
 
-    const patch: Record<string, any> = {};
-    if (name) patch.name = name;
-    if (phone_e164) {
-      if (!isE164(phone_e164)) {
-        return { ok: false, error: "Phone must be E.164 format (e.g. +13525551234)." };
-      }
-      patch.phone_e164 = phone_e164;
+    if (!name) return { ok: false, error: "Name is required." };
+    if (!phone_e164 || !isE164(phone_e164)) {
+      return { ok: false, error: "Phone must be E.164 format (e.g. +13525551234)." };
     }
-    if (timezone) patch.timezone = timezone;
-    if (checkin_time) patch.checkin_time = checkin_time;
-    if (wait_minutes_raw) {
-      const n = toIntOrNull(wait_minutes_raw);
-      if (n === null || n < 0 || n > 24 * 60) {
-        return { ok: false, error: "Wait minutes must be a number between 0 and 1440." };
-      }
-      patch.wait_minutes = n;
-    }
-    if (channel_pref) {
-      if (!["sms", "voice", "both"].includes(channel_pref)) {
-        return { ok: false, error: "Channel preference must be sms, voice, or both." };
-      }
-      patch.channel_pref = channel_pref;
+    if (!timezone) return { ok: false, error: "Timezone is required." };
+    if (!checkin_time) return { ok: false, error: "Check-in time is required." };
+    if (!["sms", "voice", "both"].includes(channel_pref)) {
+      return { ok: false, error: "Channel preference must be sms, voice, or both." };
     }
 
     const { data, error } = await sb
       .from("seniors")
-      .update(patch)
-      .eq("id", seniorId)
+      .update({
+        name,
+        phone_e164,
+        timezone,
+        checkin_time,
+        channel_pref,
+      })
+      .eq("id", id)
       .eq("owner_user_id", user.id)
-      .select("id");
+      .select("id")
+      .maybeSingle();
 
     if (error) return { ok: false, error: error.message };
-    if (!Array.isArray(data) || data.length === 0) {
-      return { ok: false, error: "No rows updated (not found or not authorized)." };
-    }
+    if (!data?.id) return { ok: false, error: "No rows updated." };
 
-    return { ok: true, data: { seniorId } };
+    return { ok: true, data: { id: data.id } };
   } catch (e: any) {
     return { ok: false, error: e?.message || "Unexpected error" };
   }
 }
 
 /**
- * Programmatic: enable monitoring for one senior.
+ * Enable monitoring for ONE senior (programmatic)
  */
 export async function activateMonitoring(
   seniorId: string
@@ -252,7 +202,7 @@ export async function activateMonitoring(
 }
 
 /**
- * Programmatic: enable monitoring for all seniors (returns count).
+ * Enable monitoring for ALL seniors (programmatic)
  */
 export async function activateMonitoringAll(): Promise<ActionResult<{ count: number }>> {
   try {
@@ -279,8 +229,32 @@ export async function activateMonitoringAll(): Promise<ActionResult<{ count: num
 }
 
 /**
- * ✅ Form-safe server actions (return Promise<void>)
- * Use these in <form action={...}>.
+ * ✅ Form-safe server action for ONE senior (what your page imports)
+ * Use in: <form action={activateMonitoringForm}>
+ */
+export async function activateMonitoringForm(formData: FormData): Promise<void> {
+  // Support a few common field names so this doesn't break if the form uses a different one
+  const seniorId =
+    getString(formData, "seniorId") ||
+    getString(formData, "senior_id") ||
+    getString(formData, "id");
+
+  if (!seniorId) {
+    redirect(`/dashboard?error=${encodeURIComponent("Missing senior id")}`);
+  }
+
+  const res = await activateMonitoring(seniorId);
+
+  if (!res.ok) {
+    redirect(`/dashboard?error=${encodeURIComponent(res.error)}`);
+  }
+
+  redirect(`/dashboard/seniors/${encodeURIComponent(seniorId)}?monitoring=on`);
+}
+
+/**
+ * ✅ Form-safe server action for ALL seniors
+ * Use in: <form action={activateMonitoringAllForm}>
  */
 export async function activateMonitoringAllForm(_formData: FormData): Promise<void> {
   const res = await activateMonitoringAll();
