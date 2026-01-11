@@ -48,10 +48,7 @@ export async function POST(req: Request) {
 
   // Paddle event types vary by config; we handle common ones safely
   const eventType =
-    event?.event_type ??
-    event?.type ??
-    event?.data?.type ??
-    "unknown";
+    event?.event_type ?? event?.type ?? event?.data?.type ?? "unknown";
 
   const data = event?.data ?? event;
 
@@ -67,28 +64,21 @@ export async function POST(req: Request) {
 
   // Extract subscription / transaction identifiers
   const subscriptionId =
-    data?.subscription_id ??
-    data?.subscription?.id ??
-    null;
+    data?.subscription_id ?? data?.subscription?.id ?? null;
 
   const transactionId =
-    data?.id ??
-    data?.transaction_id ??
-    data?.transaction?.id ??
-    null;
+    data?.id ?? data?.transaction_id ?? data?.transaction?.id ?? null;
 
-  // Map paddle events to internal subscription statuses
-  // NOTE: This is conservative; adjust mapping once your real Paddle payloads are confirmed.
+  // Map paddle events to internal subscription statuses (conservative)
   let newStatus: string | null = null;
 
-  if (String(eventType).includes("subscription") && String(eventType).includes("canceled")) {
+  const t = String(eventType).toLowerCase();
+
+  if (t.includes("subscription") && (t.includes("canceled") || t.includes("cancelled"))) {
     newStatus = "canceled";
-  } else if (String(eventType).includes("subscription") && String(eventType).includes("activated")) {
+  } else if (t.includes("subscription") && (t.includes("activated") || t.includes("created"))) {
     newStatus = "active";
-  } else if (String(eventType).includes("subscription") && String(eventType).includes("created")) {
-    newStatus = "active";
-  } else if (String(eventType).includes("transaction") && String(eventType).includes("completed")) {
-    // Transaction completed usually implies payment success; keep status active if we can locate a subscription
+  } else if (t.includes("transaction") && t.includes("completed")) {
     newStatus = "active";
   }
 
@@ -105,8 +95,6 @@ export async function POST(req: Request) {
           metadata: {
             last_event_type: eventType,
             transaction_id: transactionId,
-      tier,
-      cadence,
             tier,
             cadence,
           },
@@ -125,6 +113,8 @@ export async function POST(req: Request) {
       user_id: userId,
       subscription_id: subscriptionId,
       transaction_id: transactionId,
+      tier,
+      cadence,
     },
   });
 
