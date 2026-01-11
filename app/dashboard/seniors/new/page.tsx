@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase/server";
+import { getSubscriptionForUser } from "@/lib/subscription";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
@@ -8,9 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { createSeniorAndContacts } from "../../actions";
 
 /**
- * FIX:
- * createSeniorAndContacts returns ActionResult
- * so we must unwrap (res.ok / res.data) before redirect.
+ * createSeniorAndContacts returns ActionResult, so we unwrap (res.ok / res.data) before redirect.
  */
 
 export default async function Page({
@@ -29,6 +28,11 @@ export default async function Page({
     redirect("/login?next=/dashboard/seniors/new");
   }
 
+  const sub = await getSubscriptionForUser(sb as any, user.id);
+  if (!sub.isActive) {
+    redirect("/pricing?next=/dashboard/seniors/new");
+  }
+
   async function action(formData: FormData) {
     "use server";
 
@@ -42,9 +46,7 @@ export default async function Page({
       );
     }
 
-    redirect(
-      `/dashboard/seniors/${encodeURIComponent(res.data.seniorId)}?created=1`
-    );
+    redirect(`/dashboard/seniors/${encodeURIComponent(res.data.seniorId)}?created=1`);
   }
 
   return (
@@ -75,19 +77,13 @@ export default async function Page({
             <div className="mt-3 grid gap-4">
               <div>
                 <Label>Name</Label>
-                <Input
-                  name="senior_name"
-                  placeholder="e.g. Mom, Dad, Grandma"
-                  required
-                />
+                <Input name="senior_name" placeholder="e.g. Mom, Dad, Grandma" required />
               </div>
 
               <div>
                 <Label>Phone (E.164)</Label>
                 <Input name="phone_e164" placeholder="+13525551234" required />
-                <div className="mt-1 text-xs text-neutral-500">
-                  Must include country code
-                </div>
+                <div className="mt-1 text-xs text-neutral-500">Must include country code</div>
               </div>
             </div>
           </div>
@@ -99,11 +95,7 @@ export default async function Page({
             <div className="mt-3 grid gap-4 md:grid-cols-2">
               <div>
                 <Label>Timezone</Label>
-                <Input
-                  name="timezone"
-                  defaultValue="America/New_York"
-                  required
-                />
+                <Input name="timezone" defaultValue="America/New_York" required />
               </div>
 
               <div>
@@ -131,8 +123,8 @@ export default async function Page({
             <h2 className="font-medium text-brand-navy">Escalation contact</h2>
 
             <div className="mt-1 text-xs text-neutral-500">
-              Optional — but recommended. If you fill any field here, include a
-              name and at least a phone or email.
+              Optional — but recommended. If you fill any field here, include a name and at least a
+              phone or email.
             </div>
 
             <div className="mt-3 grid gap-4">
@@ -158,8 +150,8 @@ export default async function Page({
             <label className="flex gap-3 text-sm">
               <input type="checkbox" name="consent" required className="mt-1" />
               <span>
-                I confirm I have permission to contact this loved one via SMS or
-                voice for daily safety check-ins.
+                I confirm I have permission to contact this loved one via SMS or voice for daily
+                safety check-ins.
               </span>
             </label>
 

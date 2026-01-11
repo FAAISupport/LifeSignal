@@ -1,7 +1,8 @@
-﻿// app/dashboard/page.tsx
+// app/dashboard/page.tsx
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
+import { getSubscriptionForUser } from "@/lib/subscription";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { activateMonitoringAllForm } from "@/app/dashboard/actions";
@@ -31,10 +32,15 @@ export default async function DashboardPage({
     redirect("/login?next=/dashboard");
   }
 
+  const sub = await getSubscriptionForUser(sb as any, user.id);
+  const hasPlan = sub.isActive;
+
   // Pull seniors (loved ones)
   const { data: seniors, error: seniorsErr } = await sb
     .from("seniors")
-    .select("id,name,phone_e164,timezone,checkin_time,channel_pref,enabled,created_at")
+    .select(
+      "id,name,phone_e164,timezone,checkin_time,channel_pref,enabled,created_at"
+    )
     .eq("owner_user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -45,9 +51,15 @@ export default async function DashboardPage({
 
   const banner =
     searchParams?.error
-      ? { kind: "error" as const, message: decodeURIComponent(searchParams.error) }
+      ? {
+          kind: "error" as const,
+          message: decodeURIComponent(searchParams.error),
+        }
       : searchParams?.monitoring === "all_on"
-      ? { kind: "success" as const, message: "Monitoring enabled for all loved ones." }
+      ? {
+          kind: "success" as const,
+          message: "Monitoring enabled for all loved ones.",
+        }
       : null;
 
   return (
@@ -63,9 +75,15 @@ export default async function DashboardPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/dashboard/seniors/new">
-            <Button>+ Add a loved one</Button>
-          </Link>
+          {hasPlan ? (
+            <Link href="/dashboard/seniors/new">
+              <Button>+ Add a loved one</Button>
+            </Link>
+          ) : (
+            <Link href="/pricing">
+              <Button>Choose a plan</Button>
+            </Link>
+          )}
           <Link href="/logout">
             <Button variant="outline">Log out</Button>
           </Link>
@@ -83,6 +101,14 @@ export default async function DashboardPage({
           ].join(" ")}
         >
           {banner.message}
+        </div>
+      ) : null}
+
+      {/* Plan gate */}
+      {!hasPlan ? (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          You don’t have an active subscription yet. Choose a plan to add loved ones
+          and enable monitoring.
         </div>
       ) : null}
 
@@ -111,11 +137,18 @@ export default async function DashboardPage({
         <Card>
           <div className="text-sm text-slate-500">Plan</div>
           <div className="mt-2 text-lg font-semibold text-slate-900">
-            No active plan
+            {hasPlan ? "Active" : "No active plan"}
           </div>
           <div className="mt-1 text-xs text-slate-500">
-            (Paddle hookup next)
+            Provider: {sub.provider ?? "—"}
           </div>
+          {!hasPlan ? (
+            <div className="mt-4">
+              <Link href="/pricing">
+                <Button className="w-full">Subscribe</Button>
+              </Link>
+            </div>
+          ) : null}
         </Card>
       </div>
 
@@ -134,18 +167,22 @@ export default async function DashboardPage({
 
         <form action={activateMonitoringAllForm} className="mt-4 grid gap-3">
           <label className="flex items-start gap-3 text-sm text-slate-800">
-            <input
-              type="checkbox"
-              name="confirm"
-              required
-              className="mt-1"
-            />
+            <input type="checkbox" name="confirm" required className="mt-1" />
             <span>
-              I understand this will enable monitoring for all loved ones on my account.
+              I understand this will enable monitoring for all loved ones on my
+              account.
             </span>
           </label>
 
-          <Button type="submit">Enable monitoring for all</Button>
+          <Button type="submit" disabled={!hasPlan}>
+            Enable monitoring for all
+          </Button>
+
+          {!hasPlan ? (
+            <div className="text-xs text-slate-500">
+              Subscribe to enable monitoring.
+            </div>
+          ) : null}
         </form>
       </Card>
 
@@ -159,9 +196,15 @@ export default async function DashboardPage({
             </div>
           </div>
 
-          <Link href="/dashboard/seniors/new" className="text-sm text-slate-700 underline">
-            Create new
-          </Link>
+          {hasPlan ? (
+            <Link href="/dashboard/seniors/new" className="text-sm text-slate-700 underline">
+              Create new
+            </Link>
+          ) : (
+            <Link href="/pricing" className="text-sm text-slate-700 underline">
+              Subscribe
+            </Link>
+          )}
         </div>
 
         {seniorsErr ? (
@@ -171,9 +214,15 @@ export default async function DashboardPage({
         ) : lovedOnes.length === 0 ? (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-700">
             You don’t have any loved ones yet.{" "}
-            <Link href="/dashboard/seniors/new" className="underline">
-              Add your first loved one
-            </Link>
+            {hasPlan ? (
+              <Link href="/dashboard/seniors/new" className="underline">
+                Add your first loved one
+              </Link>
+            ) : (
+              <Link href="/pricing" className="underline">
+                Choose a plan to get started
+              </Link>
+            )}
             .
           </div>
         ) : (
@@ -199,11 +248,15 @@ export default async function DashboardPage({
                         {s.name || "Unnamed"}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{s.phone_e164 || "—"}</td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {s.phone_e164 || "—"}
+                    </td>
                     <td className="px-4 py-3 text-slate-700">
                       {(s.checkin_time || "—") + " " + (s.timezone || "")}
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{s.channel_pref || "—"}</td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {s.channel_pref || "—"}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={[

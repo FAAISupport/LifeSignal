@@ -62,6 +62,9 @@ export async function POST(req: Request) {
     data?.customer?.custom_data?.user_id ??
     null;
 
+  const tier = data?.custom_data?.tier ?? null;
+  const cadence = data?.custom_data?.cadence ?? null;
+
   // Extract subscription / transaction identifiers
   const subscriptionId =
     data?.subscription_id ??
@@ -102,6 +105,10 @@ export async function POST(req: Request) {
           metadata: {
             last_event_type: eventType,
             transaction_id: transactionId,
+      tier,
+      cadence,
+            tier,
+            cadence,
           },
         } as any,
         { onConflict: "user_id" }

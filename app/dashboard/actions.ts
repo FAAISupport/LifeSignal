@@ -4,6 +4,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
+import { getSubscriptionForUser } from "@/lib/subscription";
 
 export type ActionResult<T> =
   | { ok: true; data: T }
@@ -41,6 +42,31 @@ async function requireAuthedUser() {
   return { sb, user };
 }
 
+async function hasBetaOverride(sb: any, userId: string) {
+  // If any senior on the account is flagged beta_override, allow access even without a paid plan.
+  // (Keeps your existing cron logic consistent.)
+  const { data } = await sb
+    .from("seniors")
+    .select("id")
+    .eq("owner_user_id", userId)
+    .eq("beta_override", true)
+    .limit(1);
+
+  return Array.isArray(data) && data.length > 0;
+}
+
+async function requireActiveSubscription(sb: any, userId: string) {
+  // Beta override bypass
+  if (await hasBetaOverride(sb, userId)) return;
+
+  const sub = await getSubscriptionForUser(sb as any, userId);
+  if (!sub.isActive) {
+    throw new Error(
+      "An active subscription is required to use this feature. Please choose a plan."
+    );
+  }
+}
+
 /**
  * Create loved one + optional escalation contact (DB-only).
  */
@@ -49,6 +75,9 @@ export async function createSeniorAndContacts(
 ): Promise<ActionResult<{ seniorId: string }>> {
   try {
     const { sb, user } = await requireAuthedUser();
+
+    // Lock down: creating loved ones is a paid feature.
+    await requireActiveSubscription(sb, user.id);
 
     const senior_name = getString(formData, "senior_name");
     const phone_e164 = getString(formData, "phone_e164");
@@ -113,8 +142,6 @@ export async function createSeniorAndContacts(
         return { ok: false, error: "Escalation phone must be E.164 format (e.g. +13524809565)." };
       }
 
-      // Keep the payload schema-light: cron routes only require senior_id + phone/e-mail + notify_on_miss.
-      // If your DB also has owner_user_id, RLS should still pass via senior ownership.
       const { error: fcErr } = await sb.from("family_contacts").insert({
         senior_id: seniorId,
         name: fc_name,
@@ -135,6 +162,8 @@ export async function createSeniorAndContacts(
 
 /**
  * Update a loved one's settings (DB-only).
+ * NOTE: Keeping this available to signed-in users even if subscription expires,
+ * so they can correct details or turn things off.
  */
 export async function updateSeniorSettings(
   formData: FormData
@@ -202,6 +231,7 @@ export async function activateMonitoring(
 ): Promise<ActionResult<{ seniorId: string }>> {
   try {
     const { sb, user } = await requireAuthedUser();
+    await requireActiveSubscription(sb, user.id);
 
     const { data, error } = await sb
       .from("seniors")
@@ -227,6 +257,7 @@ export async function activateMonitoring(
 export async function activateMonitoringAll(): Promise<ActionResult<{ count: number }>> {
   try {
     const { sb, user } = await requireAuthedUser();
+    await requireActiveSubscription(sb, user.id);
 
     const { data, error } = await sb
       .from("seniors")
@@ -257,15 +288,4 @@ export async function activateMonitoringAllForm(_formData: FormData): Promise<vo
     redirect(`/dashboard?error=${encodeURIComponent(res.error)}`);
   }
   redirect(`/dashboard?monitoring=all_on`);
-}
-
-export async function activateMonitoringForm(formData: FormData): Promise<void> {
-  const seniorId = getString(formData, "seniorId");
-  if (!seniorId) redirect(`/dashboard?error=${encodeURIComponent("Missing seniorId")}`);
-
-  const res = await activateMonitoring(seniorId);
-  if (!res.ok) {
-    redirect(`/dashboard?error=${encodeURIComponent(res.error)}`);
-  }
-  redirect(`/dashboard/seniors/${encodeURIComponent(seniorId)}?monitoring=on`);
 }
