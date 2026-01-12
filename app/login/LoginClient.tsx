@@ -4,11 +4,9 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { supabaseBrowser } from "@/lib/supabase/client";
-
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { Button } from "@/components/ui/Button";
 
 type Mode = "signin" | "signup";
 
@@ -35,14 +33,9 @@ export default function LoginClient() {
     setMessage(null);
 
     const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail) {
-      setMessage("Please enter your email.");
-      return;
-    }
-    if (!password || password.length < 6) {
-      setMessage("Password must be at least 6 characters.");
-      return;
-    }
+    if (!trimmedEmail) return setMessage("Please enter your email.");
+    if (!password || password.length < 6)
+      return setMessage("Password must be at least 6 characters.");
 
     setIsSubmitting(true);
     const supabase = supabaseBrowser();
@@ -53,11 +46,7 @@ export default function LoginClient() {
           email: trimmedEmail,
           password,
         });
-
-        if (error) {
-          setMessage(error.message);
-          return;
-        }
+        if (error) return setMessage(error.message);
 
         router.push(nextUrl);
         router.refresh();
@@ -68,18 +57,41 @@ export default function LoginClient() {
         email: trimmedEmail,
         password,
       });
+      if (error) return setMessage(error.message);
 
-      if (error) {
-        setMessage(error.message);
-        return;
-      }
-
-      // If email confirmation is enabled, user may not be logged in yet, but this is still OK.
       router.push("/dashboard");
       router.refresh();
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function signInWithGoogle() {
+    setMessage(null);
+
+    const supabase = supabaseBrowser();
+
+    // Prefer env if you have it, fallback to current origin
+    const base =
+      process.env.NEXT_PUBLIC_APP_BASE_URL ||
+      (typeof window !== "undefined" ? window.location.origin : "");
+
+    const redirectTo = `${base}/auth/callback`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+        // Preserve the destination for after callback
+        queryParams: {
+          // Not required, but helps avoid consent prompts repeatedly
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
+    });
+
+    if (error) setMessage(error.message);
   }
 
   return (
@@ -90,8 +102,25 @@ export default function LoginClient() {
           Use your email and password to sign in.
         </p>
 
+        {/* ✅ Google Sign-in */}
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={signInWithGoogle}
+            className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900 hover:bg-neutral-50"
+          >
+            Continue with Google
+          </button>
+
+          <div className="my-4 flex items-center gap-3">
+            <div className="h-px w-full bg-neutral-200" />
+            <div className="text-xs text-neutral-500">or</div>
+            <div className="h-px w-full bg-neutral-200" />
+          </div>
+        </div>
+
         {/* Mode Toggle */}
-        <div className="mt-6 inline-flex w-full rounded-xl border border-neutral-200 bg-neutral-50 p-1">
+        <div className="mt-2 inline-flex w-full rounded-xl border border-neutral-200 bg-neutral-50 p-1">
           <button
             type="button"
             onClick={() => setMode("signin")}
@@ -147,11 +176,15 @@ export default function LoginClient() {
               required
               minLength={6}
             />
-            <div className="mt-1 text-xs text-neutral-500">Minimum 6 characters</div>
+            <div className="mt-1 text-xs text-neutral-500">Minimum 6 characters.</div>
           </div>
 
-          {/* ✅ The missing visible submit button */}
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {/* ✅ Guaranteed visible submit */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="mt-2 w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
             {isSubmitting
               ? mode === "signin"
                 ? "Signing in…"
@@ -159,7 +192,7 @@ export default function LoginClient() {
               : mode === "signin"
               ? "Sign in"
               : "Create account"}
-          </Button>
+          </button>
 
           {message ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
