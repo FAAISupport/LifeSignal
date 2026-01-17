@@ -1,27 +1,50 @@
-import { supabaseServer } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import Link from "next/link";
+import { supabaseServer } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
-import { Button } from "@/components/ui/Button";
 import { AuthShell } from "@/components/AuthShell";
+import SignupClient from "./SignupClient";
 
-async function signupAction(formData: FormData) {
+export type SignupState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "sent"; email: string };
+
+export async function signupAction(
+  _prevState: SignupState,
+  formData: FormData
+): Promise<SignupState> {
   "use server";
-  const email = String(formData.get("email") ?? "");
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const name = String(formData.get("name") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    return {
+      status: "error",
+      message: "Server misconfiguration: NEXT_PUBLIC_APP_URL is not set.",
+    };
+  }
 
   const sb = await supabaseServer();
-  const { data, error } = await sb.auth.signUp({ email, password });
-  if (error) throw new Error(error.message);
+
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${appUrl}/auth/confirm?next=/login?verified=1`,
+    },
+  });
+
+  if (error) return { status: "error", message: error.message };
 
   if (data.user) {
     await sb.from("profiles").upsert({ user_id: data.user.id, name, role: "user" });
   }
 
-  redirect("/dashboard");
+  // IMPORTANT: do NOT redirect — user must confirm email first
+  return { status: "sent", email };
 }
 
 export default function Page() {
@@ -32,7 +55,10 @@ export default function Page() {
       footer={
         <p className="text-sm text-neutral-700">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-brand-navy underline decoration-brand-blue/30 underline-offset-4 hover:decoration-brand-blue/60">
+          <Link
+            href="/login"
+            className="font-medium text-brand-navy underline decoration-brand-blue/30 underline-offset-4 hover:decoration-brand-blue/60"
+          >
             Log in
           </Link>
         </p>
@@ -44,28 +70,7 @@ export default function Page() {
           <div className="mt-1 text-xs text-neutral-600">Takes less than a minute</div>
         </div>
 
-        <form action={signupAction} className="mt-5 grid gap-4">
-          <div className="grid gap-2">
-            <Label>Name</Label>
-            <Input name="name" required autoComplete="name" />
-          </div>
-          <div className="grid gap-2">
-            <Label>Email</Label>
-            <Input type="email" name="email" required autoComplete="email" />
-          </div>
-          <div className="grid gap-2">
-            <Label>Password</Label>
-            <Input type="password" name="password" required minLength={8} autoComplete="new-password" />
-            <div className="text-xs text-neutral-500">Minimum 8 characters.</div>
-          </div>
-
-          <Button type="submit" className="w-full">Continue</Button>
-
-          <p className="text-xs text-neutral-500">
-            By creating an account, you agree to receive service messages and acknowledge our{" "}
-            <Link href="/terms" className="underline underline-offset-4 hover:text-brand-navy">terms</Link>.
-          </p>
-        </form>
+        <SignupClient />
       </Card>
     </AuthShell>
   );
