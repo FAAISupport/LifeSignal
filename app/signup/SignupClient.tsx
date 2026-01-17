@@ -5,8 +5,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
-import type { SignupState } from "./page";
-import { signupAction } from "./page";
+import { signupAction, type SignupState } from "./actions";
 
 export default function SignupClient() {
   const [state, formAction, pending] = useActionState<SignupState, FormData>(
@@ -46,7 +45,6 @@ export default function SignupClient() {
         </div>
       )}
 
-      {/* If you want to hide the form after email is sent, wrap in: state.status !== "sent" */}
       <form action={formAction} className="mt-5 grid gap-4">
         <div className="grid gap-2">
           <Label>Name</Label>
