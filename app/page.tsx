@@ -136,6 +136,9 @@ export default function HomePage() {
             Senior-friendly wording, minimal steps, and simple “YES / Press 1” confirmations.
           </p>
         </Card>
+
+
+
       </section>
     </div>
   );
