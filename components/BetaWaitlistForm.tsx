@@ -4,124 +4,95 @@ import { useState } from "react"
 
 export function BetaWaitlistForm({ referralCode = "" }: { referralCode?: string }) {
   const [email, setEmail] = useState("")
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [phone, setPhone] = useState("")
-  const [interest, setInterest] = useState("family")
-  const [message, setMessage] = useState("")
+  const [fullName, setFullName] = useState("")
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
+    setMessage("")
     setError("")
 
     try {
       const res = await fetch("/api/waitlist/signup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          firstName,
-          lastName,
           email,
-          phone,
-          interest,
+          fullName,
           referralCode,
-          message
         }),
       })
 
-      if (!res.ok) throw new Error("Failed to join waitlist")
+      const data = await res.json()
 
-      setSuccess(true)
+      if (!res.ok) {
+        throw new Error(data?.error || "Something went wrong")
+      }
+
+      setMessage("You are on the LifeSignal beta waitlist.")
+      setEmail("")
+      setFullName("")
     } catch (err) {
-      setError("Something went wrong")
+      setError(err instanceof Error ? err.message : "Something went wrong")
     } finally {
       setLoading(false)
     }
   }
 
-  if (success) {
-    return (
-      <div className="text-center">
-        <h3 className="text-xl font-semibold text-green-600">
-          You're on the waitlist 🎉
-        </h3>
-        <p className="mt-2 text-gray-600">
-          We'll notify you when LifeSignal beta opens.
-        </p>
-      </div>
-    )
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-4 text-left">
+      <div>
+        <label htmlFor="fullName" className="mb-2 block text-sm font-medium text-slate-700">
+          Full name
+        </label>
         <input
-          placeholder="First name"
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          required
-        />
-
-        <input
-          placeholder="Last name"
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
+          id="fullName"
+          type="text"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="Judd Spence"
+          className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none ring-0 transition focus:border-sky-500"
           required
         />
       </div>
 
-      <input
-        placeholder="Email address"
-        type="email"
-        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
+      <div>
+        <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">
+          Email
+        </label>
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="judd@example.com"
+          className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none ring-0 transition focus:border-sky-500"
+          required
+        />
+      </div>
 
-      <input
-        placeholder="Phone number"
-        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-      />
-
-      <select
-        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
-        value={interest}
-        onChange={(e) => setInterest(e.target.value)}
-      >
-        <option value="family">Family member</option>
-        <option value="caregiver">Caregiver</option>
-        <option value="community">Community partner</option>
-        <option value="healthcare">Healthcare provider</option>
-      </select>
-
-      <textarea
-        placeholder="How would you use LifeSignal?"
-        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-      />
+      <input type="hidden" name="referralCode" value={referralCode} />
 
       <button
         type="submit"
-        className="w-full rounded-lg bg-sky-600 py-3 font-semibold text-white hover:bg-sky-700 transition"
         disabled={loading}
+        className="w-full rounded-lg bg-sky-500 px-5 py-3 font-medium text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loading ? "Joining..." : "Join the Beta"}
+        {loading ? "Joining..." : "Join Beta"}
       </button>
 
-      {error && (
-        <p className="text-red-500 text-sm text-center">{error}</p>
-      )}
+      {message ? (
+        <p className="text-sm text-emerald-600">{message}</p>
+      ) : null}
+
+      {error ? (
+        <p className="text-sm text-red-600">{error}</p>
+      ) : null}
     </form>
   )
 }
