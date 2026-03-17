@@ -1,0 +1,3 @@
+module.exports=[93695,(a,b,c)=>{b.exports=a.x("next/dist/shared/lib/no-fallback-error.external.js",()=>require("next/dist/shared/lib/no-fallback-error.external.js"))},79512,a=>{a.n(a.i(73440))},97158,a=>{a.n(a.i(5492))},9229,a=>{a.n(a.i(47771))},86420,a=>{a.n(a.i(3080))},23783,a=>{a.n(a.i(19182))},43313,a=>{"use strict";var b=a.i(41891);function c({children:a}){return(0,b.jsx)("main",{className:"min-h-screen bg-[#020817] text-white",children:a})}a.s(["default",()=>c])}];
+
+//# sourceMappingURL=%5Broot-of-the-server%5D__f0cf8d24._.js.map

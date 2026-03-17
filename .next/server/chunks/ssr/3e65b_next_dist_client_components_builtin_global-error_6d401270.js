@@ -1,0 +1,3 @@
+module.exports=[12157,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(60565);a.n(d("[project]/Downloads/fictional-robot-codex-design-and-build-lifesignal-saas-platform/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},34086,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(60565);a.n(d("[project]/Downloads/fictional-robot-codex-design-and-build-lifesignal-saas-platform/node_modules/next/dist/client/components/builtin/global-error.js"))},19182,a=>{"use strict";a.i(12157);var b=a.i(34086);a.n(b)}];
+
+//# sourceMappingURL=3e65b_next_dist_client_components_builtin_global-error_6d401270.js.map

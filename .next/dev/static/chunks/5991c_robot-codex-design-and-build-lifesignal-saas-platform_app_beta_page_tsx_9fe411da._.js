@@ -1,0 +1,7 @@
+(globalThis.TURBOPACK_CHUNK_LISTS || (globalThis.TURBOPACK_CHUNK_LISTS = [])).push({
+    script: typeof document === "object" ? document.currentScript : undefined,
+    chunks: [
+  "static/chunks/6c7f9_fictional-robot-codex-design-and-build-lifesignal-saas-platform_a4742a0e._.js"
+],
+    source: "dynamic"
+});

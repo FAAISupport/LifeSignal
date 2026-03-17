@@ -1,0 +1,3 @@
+{
+  "/api/cron/materialize-checkins/route": "app/api/cron/materialize-checkins/route.js"
+}
