@@ -1,3 +1,0 @@
-module.exports=[93695,(a,b,c)=>{b.exports=a.x("next/dist/shared/lib/no-fallback-error.external.js",()=>require("next/dist/shared/lib/no-fallback-error.external.js"))},79512,a=>{a.n(a.i(73440))},97158,a=>{a.n(a.i(5492))},9229,a=>{a.n(a.i(47771))},86420,a=>{a.n(a.i(3080))},23783,a=>{a.n(a.i(19182))},93220,a=>{"use strict";var b=a.i(41891);function c(){return(0,b.jsxs)("main",{className:"mx-auto max-w-md p-8",children:[(0,b.jsx)("h1",{className:"text-2xl font-semibold",children:"Sign in to LifeSignal"}),(0,b.jsx)("p",{className:"mt-3 text-slate-600",children:"Authentication is handled by Supabase Auth. Configure your provider and use secure login links."})]})}a.s(["default",()=>c])}];
-
-//# sourceMappingURL=%5Broot-of-the-server%5D__956800f0._.js.map
