@@ -1,0 +1,5 @@
+1:"$Sreact.fragment"
+2:I[45556,["/_next/static/chunks/df8077742983c01d.js","/_next/static/chunks/a8d855f70166125a.js"],"OutletBoundary"]
+3:"$Sreact.suspense"
+0:{"buildId":"ttF89QKVcaYYWdugV5d7D","rsc":["$","$1","c",{"children":[["$","main",null,{"className":"mx-auto max-w-4xl p-6","children":[["$","h1",null,{"className":"text-2xl font-semibold text-slate-900","children":"Waitlist dashboard"}],["$","p",null,{"className":"mt-2 text-slate-600","children":["Use ",["$","code",null,{"children":"/api/waitlist/dashboard?email=..."}]," to fetch your live position, referral link, and milestone progress."]}],["$","ul",null,{"className":"mt-4 list-disc pl-6 text-slate-700","children":[["$","li",null,{"children":"Waitlist position and spots gained"}],["$","li",null,{"children":"Referral URL and referral count"}],["$","li",null,{"children":"Leaderboard rank"}],["$","li",null,{"children":"Beta eligibility state"}]]}]]}],null,["$","$L2",null,{"children":["$","$3",null,{"name":"Next.MetadataOutlet","children":"$@4"}]}]]}],"loading":null,"isPartial":false}
+4:null

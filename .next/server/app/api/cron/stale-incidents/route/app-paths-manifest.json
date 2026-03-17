@@ -1,0 +1,3 @@
+{
+  "/api/cron/stale-incidents/route": "app/api/cron/stale-incidents/route.js"
+}
