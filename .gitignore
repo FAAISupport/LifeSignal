@@ -1,1 +1,7 @@
-.vercel
+.next
+node_modules
+*.zip
+.env
+.env.local
+dist
+build
