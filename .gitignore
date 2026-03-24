@@ -1,7 +1,7 @@
-.next
 node_modules
-*.zip
-.env
+.next
 .env.local
+.env
+*.log
 dist
-build
+out
