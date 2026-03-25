@@ -63,11 +63,27 @@ type BetaPageProps = {
 
 export default async function BetaPage({ searchParams }: BetaPageProps) {
   const params = await searchParams;
+
   const referralCodeParam = params.ref;
   const referralCode =
     typeof referralCodeParam === "string" ? referralCodeParam : "";
+
   const errorParam = params.error;
   const error = typeof errorParam === "string" ? errorParam : "";
+
+  const joinedParam = params.joined;
+  const joined = typeof joinedParam === "string" ? joinedParam === "1" : false;
+
+  const existingParam = params.existing;
+  const existing =
+    typeof existingParam === "string" ? existingParam === "1" : false;
+
+  const yourRefParam = params.your_ref;
+  const yourRef = typeof yourRefParam === "string" ? yourRefParam : "";
+
+  const shareLink = yourRef
+    ? `https://lifesignal.app/beta?ref=${encodeURIComponent(yourRef)}`
+    : "";
 
   return (
     <SitePageShell>
@@ -145,6 +161,34 @@ export default async function BetaPage({ searchParams }: BetaPageProps) {
                 </div>
               ) : null}
 
+              {joined ? (
+                <div className="mt-6 space-y-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-emerald-200">
+                  <p className="text-lg font-semibold">
+                    {existing
+                      ? "You are already on the waitlist."
+                      : "You're in — welcome to the LifeSignal beta waitlist."}
+                  </p>
+
+                  {yourRef ? (
+                    <>
+                      <div>
+                        <p className="text-sm uppercase tracking-wide text-emerald-300">
+                          Your referral code
+                        </p>
+                        <p className="mt-1 text-xl font-bold text-white">{yourRef}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm uppercase tracking-wide text-emerald-300">
+                          Your referral link
+                        </p>
+                        <p className="mt-1 break-all text-white">{shareLink}</p>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+
               {error ? (
                 <div className="mt-6 rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-lg text-rose-200">
                   Something went wrong while joining the waitlist. Please try
@@ -174,6 +218,12 @@ export default async function BetaPage({ searchParams }: BetaPageProps) {
                 method="POST"
                 className="space-y-5"
               >
+                <input type="hidden" name="consentSource" value="beta_form" />
+                <input type="hidden" name="consentStatus" value="opted_in" />
+                <input type="hidden" name="consentChannel" value="both" />
+                <input type="hidden" name="consentVersion" value="v1" />
+                <input type="hidden" name="consentFormPath" value="/beta" />
+
                 <div>
                   <label
                     htmlFor="name"
@@ -219,9 +269,13 @@ export default async function BetaPage({ searchParams }: BetaPageProps) {
                     id="phone"
                     name="phone"
                     type="tel"
+                    required
                     placeholder="(352) 555-0123"
                     className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white outline-none ring-0 placeholder:text-slate-500 focus:border-sky-400/50"
                   />
+                  <p className="mt-2 text-sm text-slate-400">
+                    Required for SMS and voice beta enrollment.
+                  </p>
                 </div>
 
                 <div>
@@ -282,6 +336,50 @@ export default async function BetaPage({ searchParams }: BetaPageProps) {
                     placeholder="Tell us a little about your situation or why LifeSignal matters to you."
                     className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white outline-none ring-0 placeholder:text-slate-500 focus:border-sky-400/50"
                   />
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+                  <label
+                    htmlFor="messagingConsent"
+                    className="flex cursor-pointer items-start gap-3"
+                  >
+                    <input
+                      id="messagingConsent"
+                      name="messagingConsent"
+                      type="checkbox"
+                      value="yes"
+                      required
+                      className="mt-1 h-4 w-4 rounded border-slate-300"
+                    />
+                    <span className="text-sm leading-6 text-slate-300">
+                      I agree to receive transactional SMS and/or voice safety
+                      check-ins, reminders, and caregiver notifications from
+                      LifeSignal. Message frequency varies. Msg &amp; data rates
+                      may apply. Reply STOP to opt out and HELP for help. View
+                      our{" "}
+                      <Link
+                        href="/consent"
+                        className="font-medium text-sky-300 underline"
+                      >
+                        Consent Policy
+                      </Link>
+                      ,{" "}
+                      <Link
+                        href="/privacy"
+                        className="font-medium text-sky-300 underline"
+                      >
+                        Privacy Policy
+                      </Link>
+                      , and{" "}
+                      <Link
+                        href="/terms"
+                        className="font-medium text-sky-300 underline"
+                      >
+                        Terms
+                      </Link>
+                      .
+                    </span>
+                  </label>
                 </div>
 
                 <button
@@ -425,4 +523,3 @@ export default async function BetaPage({ searchParams }: BetaPageProps) {
     </SitePageShell>
   );
 }
-

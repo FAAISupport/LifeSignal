@@ -1,248 +1,218 @@
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
-import {
-  buildReferralLink,
-  extractReferralCode,
-  normalizeEmail,
-  randomReferralCode,
-} from "@/lib/waitlist";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { recordConsent } from "@/lib/compliance/consent";
 
-export const dynamic = "force-dynamic";
-
-type WaitlistRow = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  use_case: string | null;
-  notes: string | null;
-  referral_code: string;
-  referred_by_code: string | null;
-  referrals_count: number;
-  created_at: string;
-};
-
-async function parseRequest(request: Request) {
-  const contentType = request.headers.get("content-type") || "";
-
-  if (contentType.includes("application/json")) {
-    const body = await request.json();
-    return {
-      name: String(body.name ?? ""),
-      email: String(body.email ?? ""),
-      phone: String(body.phone ?? ""),
-      useCase: String(body.useCase ?? ""),
-      notes: String(body.notes ?? ""),
-      referralCode: String(body.referralCode ?? ""),
-    };
+function getEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
   }
-
-  const formData = await request.formData();
-
-  return {
-    name: String(formData.get("name") ?? ""),
-    email: String(formData.get("email") ?? ""),
-    phone: String(formData.get("phone") ?? ""),
-    useCase: String(formData.get("useCase") ?? ""),
-    notes: String(formData.get("notes") ?? ""),
-    referralCode: String(formData.get("referralCode") ?? ""),
-  };
+  return value;
 }
 
-async function generateUniqueReferralCode() {
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const code = randomReferralCode(8);
+function normalizePhone(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
 
-    const { data } = await supabaseAdmin
-      .from("waitlist_entries")
-      .select("id")
-      .eq("referral_code", code)
+  if (trimmed.startsWith("+")) {
+    return `+${trimmed.slice(1).replace(/\D/g, "")}`;
+  }
+
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+${digits}`;
+  }
+
+  return null;
+}
+
+function clean(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function buildBetaUrl(req: NextRequest) {
+  return new URL("/beta", req.url);
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const formData = await req.formData();
+
+    const name = clean(formData.get("name"));
+    const email = clean(formData.get("email")).toLowerCase();
+    const phoneRaw = clean(formData.get("phone"));
+    const phone = normalizePhone(phoneRaw);
+    const useCase = clean(formData.get("useCase"));
+    const referralCode = clean(formData.get("referralCode")).toUpperCase();
+    const notes = clean(formData.get("notes"));
+    const messagingConsent = clean(formData.get("messagingConsent"));
+
+    const consentSource = clean(formData.get("consentSource")) || "beta_form";
+    const consentStatus = clean(formData.get("consentStatus")) || "opted_in";
+    const consentChannel = clean(formData.get("consentChannel")) || "both";
+    const consentFormPath = clean(formData.get("consentFormPath")) || "/beta";
+
+    const redirectUrl = buildBetaUrl(req);
+
+    if (!name || !email || !phone || messagingConsent !== "yes") {
+      redirectUrl.searchParams.set("error", "1");
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    const supabase = createClient(
+      getEnv("NEXT_PUBLIC_SUPABASE_URL"),
+      getEnv("SUPABASE_SERVICE_ROLE_KEY"),
+      {
+        auth: { persistSession: false, autoRefreshToken: false },
+      }
+    );
+
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const ipAddress = forwardedFor?.split(",")[0]?.trim() ?? null;
+    const userAgent = req.headers.get("user-agent");
+    const referrer = req.headers.get("referer");
+
+    const { data: existingSignup, error: existingLookupError } = await supabase
+      .from("waitlist_signups")
+      .select("id, email, personal_referral_code")
+      .eq("email", email)
       .maybeSingle();
 
-    if (!data) {
-      return code;
-    }
-  }
-
-  throw new Error("Failed to generate a unique referral code");
-}
-
-function getOrigin(request: Request) {
-  const url = new URL(request.url);
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const forwardedHost = request.headers.get("x-forwarded-host");
-
-  if (forwardedHost) {
-    return `${forwardedProto || "https"}://${forwardedHost}`;
-  }
-
-  return url.origin;
-}
-
-function wantsJson(request: Request) {
-  const accept = request.headers.get("accept") || "";
-  const contentType = request.headers.get("content-type") || "";
-  return accept.includes("application/json") || contentType.includes("application/json");
-}
-
-async function incrementReferrer(code: string) {
-  const { data: referrer } = await supabaseAdmin
-    .from("waitlist_entries")
-    .select("id, referrals_count")
-    .eq("referral_code", code)
-    .maybeSingle();
-
-  if (!referrer) {
-    return false;
-  }
-
-  const { error } = await supabaseAdmin
-    .from("waitlist_entries")
-    .update({
-      referrals_count: (referrer.referrals_count ?? 0) + 1,
-    })
-    .eq("id", referrer.id);
-
-  if (error) {
-    throw error;
-  }
-
-  return true;
-}
-
-export async function POST(request: Request) {
-  try {
-    const input = await parseRequest(request);
-
-    const name = input.name.trim();
-    const email = normalizeEmail(input.email);
-    const phone = input.phone.trim();
-    const useCase = input.useCase.trim();
-    const notes = input.notes.trim();
-    const referredByCode = extractReferralCode(input.referralCode);
-    const origin = getOrigin(request);
-
-    if (!name || !email) {
-      const errorPayload = { error: "Name and email are required." };
-
-      if (wantsJson(request)) {
-        return NextResponse.json(errorPayload, { status: 400 });
-      }
-
-      return NextResponse.redirect(
-        new URL("/beta?error=missing-required-fields", origin),
-        { status: 303 }
-      );
+    if (existingLookupError) {
+      throw new Error(`Existing signup lookup failed: ${existingLookupError.message}`);
     }
 
-    const { data: existing, error: existingError } = await supabaseAdmin
-      .from("waitlist_entries")
-      .select("*")
-      .eq("email", email)
-      .maybeSingle<WaitlistRow>();
+    if (existingSignup) {
+      redirectUrl.searchParams.set("joined", "1");
+      redirectUrl.searchParams.set("existing", "1");
 
-    if (existingError) {
-      throw existingError;
+      if (existingSignup.personal_referral_code) {
+        redirectUrl.searchParams.set("your_ref", existingSignup.personal_referral_code);
+      }
+
+      if (referralCode) {
+        redirectUrl.searchParams.set("ref", referralCode);
+      }
+
+      return NextResponse.redirect(redirectUrl);
     }
 
-    let row: WaitlistRow | null = existing ?? null;
+    let validReferrerCode: string | null = null;
 
-    if (row) {
-      if (!row.referred_by_code && referredByCode && referredByCode !== row.referral_code) {
-        const referredByApplied = await incrementReferrer(referredByCode);
+    if (referralCode) {
+      const { data: referrerRow, error: referrerError } = await supabase
+        .from("waitlist_signups")
+        .select("email, personal_referral_code")
+        .eq("personal_referral_code", referralCode)
+        .maybeSingle();
 
-        if (referredByApplied) {
-          const { data: updatedRow, error: updateExistingError } = await supabaseAdmin
-            .from("waitlist_entries")
-            .update({
-              referred_by_code: referredByCode,
-            })
-            .eq("id", row.id)
-            .select("*")
-            .single<WaitlistRow>();
-
-          if (updateExistingError) {
-            throw updateExistingError;
-          }
-
-          row = updatedRow;
-        }
-      }
-    } else {
-      const referralCode = await generateUniqueReferralCode();
-      let validReferredByCode: string | null = null;
-
-      if (referredByCode && referredByCode !== referralCode) {
-        const { data: referredByRow } = await supabaseAdmin
-          .from("waitlist_entries")
-          .select("id")
-          .eq("referral_code", referredByCode)
-          .maybeSingle();
-
-        if (referredByRow) {
-          validReferredByCode = referredByCode;
-        }
+      if (referrerError) {
+        throw new Error(`Referrer lookup failed: ${referrerError.message}`);
       }
 
-      const { data: inserted, error: insertError } = await supabaseAdmin
-        .from("waitlist_entries")
-        .insert({
-          name,
-          email,
-          phone: phone || null,
-          use_case: useCase || null,
-          notes: notes || null,
-          referral_code: referralCode,
-          referred_by_code: validReferredByCode,
-        })
-        .select("*")
-        .single<WaitlistRow>();
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      row = inserted;
-
-      if (validReferredByCode) {
-        await incrementReferrer(validReferredByCode);
+      if (referrerRow && referrerRow.email.toLowerCase() !== email) {
+        validReferrerCode = referrerRow.personal_referral_code;
       }
     }
 
-    if (!row) {
-      throw new Error("Failed to create or retrieve waitlist entry");
+    const { data: insertedSignup, error: waitlistError } = await supabase
+      .from("waitlist_signups")
+      .insert({
+        name,
+        email,
+        phone,
+        use_case: useCase || null,
+        referral_code: referralCode || null,
+        referred_by: validReferrerCode || null,
+        referred_by_code: validReferrerCode || null,
+        notes: notes || null,
+        metadata: {
+          source: "beta_form",
+          original_referral_code_input: referralCode || null,
+        },
+      })
+      .select("id, personal_referral_code, waitlist_position")
+      .single();
+
+    if (waitlistError) {
+      throw new Error(`Waitlist insert failed: ${waitlistError.message}`);
     }
 
-    const referralLink = buildReferralLink(origin, row.referral_code);
-    const successUrl = new URL("/beta/success", origin);
-
-    successUrl.searchParams.set("code", row.referral_code);
-    successUrl.searchParams.set("email", row.email);
-
-    if (wantsJson(request)) {
-      return NextResponse.json({
-        ok: true,
-        referralCode: row.referral_code,
-        referralLink,
-        referralsCount: row.referrals_count,
-      });
-    }
-
-    return NextResponse.redirect(successUrl, { status: 303 });
-  } catch (error) {
-    console.error("waitlist join error", error);
-
-    const origin = getOrigin(request);
-
-    if (wantsJson(request)) {
-      return NextResponse.json(
-        { error: "Unable to join the waitlist right now." },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.redirect(new URL("/beta?error=join-failed", origin), {
-      status: 303,
+    await recordConsent({
+      phoneE164: phone,
+      email,
+      fullName: name,
+      source:
+        consentSource === "beta_form" ||
+        consentSource === "website" ||
+        consentSource === "caregiver_enrollment" ||
+        consentSource === "manual_admin" ||
+        consentSource === "inbound_sms" ||
+        consentSource === "voice_opt_in"
+          ? consentSource
+          : "beta_form",
+      status:
+        consentStatus === "opted_in" ||
+        consentStatus === "opted_out" ||
+        consentStatus === "help_requested" ||
+        consentStatus === "pending"
+          ? consentStatus
+          : "opted_in",
+      channel:
+        consentChannel === "sms" ||
+        consentChannel === "voice" ||
+        consentChannel === "both"
+          ? consentChannel
+          : "both",
+      ipAddress,
+      userAgent,
+      formPath: consentFormPath,
+      referrer,
+      metadata: {
+        useCase,
+        referralCode,
+        referredByCode: validReferrerCode,
+        notes,
+        origin: "waitlist_join_route",
+      },
     });
+
+    const { error: refreshError } = await supabase.rpc("refresh_waitlist_rankings");
+    if (refreshError) {
+      throw new Error(`Ranking refresh failed: ${refreshError.message}`);
+    }
+
+    const { data: refreshedSignup, error: refreshedSignupError } = await supabase
+      .from("waitlist_signups")
+      .select("personal_referral_code, waitlist_position")
+      .eq("id", insertedSignup.id)
+      .single();
+
+    if (refreshedSignupError) {
+      throw new Error(`Refreshed signup lookup failed: ${refreshedSignupError.message}`);
+    }
+
+    redirectUrl.searchParams.set("joined", "1");
+
+    if (referralCode) {
+      redirectUrl.searchParams.set("ref", referralCode);
+    }
+
+    if (refreshedSignup.personal_referral_code) {
+      redirectUrl.searchParams.set("your_ref", refreshedSignup.personal_referral_code);
+    }
+
+    return NextResponse.redirect(redirectUrl);
+  } catch (error) {
+    console.error("Waitlist join failed:", error);
+    const redirectUrl = buildBetaUrl(req);
+    redirectUrl.searchParams.set("error", "1");
+    return NextResponse.redirect(redirectUrl);
   }
 }
