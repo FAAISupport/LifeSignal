@@ -1,41 +1,27 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
-import { maskName } from "@/lib/waitlist";
+import { createClient } from "@supabase/supabase-js";
 
-export const dynamic = "force-dynamic";
-
-type LeaderboardRow = {
-  name: string;
-  referral_code: string;
-  referrals_count: number;
-  created_at: string;
-};
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET() {
   try {
-    const { data, error } = await supabaseAdmin
-      .from("waitlist_entries")
-      .select("name, referral_code, referrals_count, created_at")
-      .order("referrals_count", { ascending: false })
-      .order("created_at", { ascending: true })
-      .limit(10);
+    const { data, error } = await supabase
+      .from("waitlist")
+      .select("*");
 
     if (error) {
-      throw error;
+      console.error("Leaderboard error:", error);
+      return NextResponse.json({ count: 0 });
     }
 
-    const leaderboard = ((data ?? []) as LeaderboardRow[]).map((entry, index) => ({
-      rank: index + 1,
-      name: maskName(entry.name),
-      referralCode: entry.referral_code,
-      referralsCount: entry.referrals_count ?? 0,
-    }));
-
     return NextResponse.json({
-      leaderboard,
+      count: data?.length || 0
     });
-  } catch (error) {
-    console.error("waitlist leaderboard error", error);
-    return NextResponse.json({ leaderboard: [] }, { status: 500 });
+  } catch (err) {
+    console.error("Server error:", err);
+    return NextResponse.json({ count: 0 });
   }
 }
