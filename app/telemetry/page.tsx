@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 
 type Snapshot = {
   id: string;
@@ -17,19 +18,28 @@ type Snapshot = {
 };
 
 async function getTelemetry(): Promise<Snapshot[]> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000";
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const proto = h.get("x-forwarded-proto") ?? "http";
 
-  const res = await fetch(`${baseUrl}/api/telemetry`, {
-    cache: "no-store",
-  });
+    if (!host) {
+      return [];
+    }
 
-  if (!res.ok) {
+    const res = await fetch(`${proto}://${host}/api/telemetry`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const json = await res.json();
+    return json.snapshots ?? [];
+  } catch {
     return [];
   }
-
-  const json = await res.json();
-  return json.snapshots ?? [];
 }
 
 function riskBadge(level: string) {

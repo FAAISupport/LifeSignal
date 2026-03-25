@@ -62,10 +62,16 @@ export async function POST() {
       inserted.push(await createTelemetrySnapshot(row));
     }
 
-    return NextResponse.json({ ok: true, inserted });
+    return NextResponse.json({
+      ok: true,
+      insertedCount: inserted.length,
+      inserted,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected server error";
+
+    console.error("/api/telemetry/seed failed:", message);
 
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }

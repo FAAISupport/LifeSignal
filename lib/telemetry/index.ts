@@ -9,13 +9,12 @@ function getEnv(name: string): string {
 }
 
 function getSupabase() {
-  return createClient(
-    getEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    getEnv("SUPABASE_SERVICE_ROLE_KEY"),
-    {
-      auth: { persistSession: false, autoRefreshToken: false },
-    }
-  );
+  const url = getEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const key = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export type TelemetryInput = {
@@ -38,6 +37,35 @@ export type TelemetryInput = {
   metadata?: Record<string, unknown>;
 };
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function calculateLifeSignalRisk(input: {
+  missedCheckins7d: number;
+  avgResponseMinutes7d: number;
+  lateResponses7d: number;
+  escalations30d: number;
+  guardianInterventions30d: number;
+}) {
+  let score = 0;
+
+  score += Math.min(Math.max(input.missedCheckins7d, 0) * 12, 36);
+  score += Math.min(Math.max(Math.floor(input.avgResponseMinutes7d / 5), 0) * 2, 24);
+  score += Math.min(Math.max(input.lateResponses7d, 0) * 5, 20);
+  score += Math.min(Math.max(input.escalations30d, 0) * 10, 20);
+  score += Math.min(Math.max(input.guardianInterventions30d, 0) * 5, 15);
+
+  return clamp(score, 0, 100);
+}
+
+export function calculateLifeSignalRiskLevel(score: number) {
+  if (score <= 19) return "stable";
+  if (score <= 39) return "caution";
+  if (score <= 64) return "elevated";
+  return "high";
+}
+
 export async function createTelemetrySnapshot(input: TelemetryInput) {
   const supabase = getSupabase();
 
@@ -47,57 +75,41 @@ export async function createTelemetrySnapshot(input: TelemetryInput) {
   const escalations30d = input.escalations30d ?? 0;
   const guardianInterventions30d = input.guardianInterventions30d ?? 0;
 
-  const { data: scoreData, error: scoreError } = await supabase.rpc(
-    "calculate_lifesignal_risk",
-    {
-      p_missed_checkins_7d: missedCheckins7d,
-      p_avg_response_minutes_7d: avgResponseMinutes7d,
-      p_late_responses_7d: lateResponses7d,
-      p_escalations_30d: escalations30d,
-      p_guardian_interventions_30d: guardianInterventions30d,
-    }
-  );
+  const riskScore = calculateLifeSignalRisk({
+    missedCheckins7d,
+    avgResponseMinutes7d,
+    lateResponses7d,
+    escalations30d,
+    guardianInterventions30d,
+  });
 
-  if (scoreError) {
-    throw new Error(`Risk score calculation failed: ${scoreError.message}`);
-  }
+  const riskLevel = calculateLifeSignalRiskLevel(riskScore);
 
-  const riskScore = Number(scoreData ?? 0);
-
-  const { data: levelData, error: levelError } = await supabase.rpc(
-    "calculate_lifesignal_risk_level",
-    {
-      p_score: riskScore,
-    }
-  );
-
-  if (levelError) {
-    throw new Error(`Risk level calculation failed: ${levelError.message}`);
-  }
+  const payload = {
+    person_id: input.personId ?? null,
+    full_name: input.fullName,
+    phone_e164: input.phoneE164 ?? null,
+    response_rate_7d: input.responseRate7d ?? 100,
+    response_rate_30d: input.responseRate30d ?? 100,
+    avg_response_minutes_7d: avgResponseMinutes7d,
+    avg_response_minutes_30d: input.avgResponseMinutes30d ?? 0,
+    missed_checkins_7d: missedCheckins7d,
+    missed_checkins_30d: input.missedCheckins30d ?? 0,
+    late_responses_7d: lateResponses7d,
+    late_responses_30d: input.lateResponses30d ?? 0,
+    escalations_7d: input.escalations7d ?? 0,
+    escalations_30d: escalations30d,
+    guardian_interventions_30d: guardianInterventions30d,
+    risk_score: riskScore,
+    risk_level: riskLevel,
+    trend: input.trend ?? "stable",
+    notes: input.notes ?? null,
+    metadata: input.metadata ?? {},
+  };
 
   const { data, error } = await supabase
     .from("telemetry_snapshots")
-    .insert({
-      person_id: input.personId ?? null,
-      full_name: input.fullName,
-      phone_e164: input.phoneE164 ?? null,
-      response_rate_7d: input.responseRate7d ?? 100,
-      response_rate_30d: input.responseRate30d ?? 100,
-      avg_response_minutes_7d: avgResponseMinutes7d,
-      avg_response_minutes_30d: input.avgResponseMinutes30d ?? 0,
-      missed_checkins_7d: missedCheckins7d,
-      missed_checkins_30d: input.missedCheckins30d ?? 0,
-      late_responses_7d: lateResponses7d,
-      late_responses_30d: input.lateResponses30d ?? 0,
-      escalations_7d: input.escalations7d ?? 0,
-      escalations_30d: escalations30d,
-      guardian_interventions_30d: guardianInterventions30d,
-      risk_score: riskScore,
-      risk_level: String(levelData ?? "stable"),
-      trend: input.trend ?? "stable",
-      notes: input.notes ?? null,
-      metadata: input.metadata ?? {},
-    })
+    .insert(payload)
     .select("*")
     .single();
 
@@ -121,5 +133,5 @@ export async function getLatestTelemetrySnapshots(limit = 12) {
     throw new Error(`Failed to fetch telemetry snapshots: ${error.message}`);
   }
 
-  return data;
+  return data ?? [];
 }
