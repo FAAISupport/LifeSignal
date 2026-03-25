@@ -200,3 +200,4 @@ export async function refreshLeaderboards(snapshotDate: string) {
   if (error) throw new Error(`leaderboard_refresh_failed:${error.message}`);
   return { inserted: rows.length };
 }
+

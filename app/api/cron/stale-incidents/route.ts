@@ -13,3 +13,4 @@ export async function POST(request: Request) {
     return fail("CRON_FAILED", "Stale incident detection failed", 500, String(error));
   }
 }
+

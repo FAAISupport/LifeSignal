@@ -139,3 +139,4 @@ export async function processRiskThresholdNotifications() {
 
   return { processed: events?.length ?? 0 };
 }
+

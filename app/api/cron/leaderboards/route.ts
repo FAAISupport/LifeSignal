@@ -16,3 +16,4 @@ export async function POST(request: Request) {
     return fail("CRON_FAILED", "Leaderboard refresh failed", 500, String(error));
   }
 }
+

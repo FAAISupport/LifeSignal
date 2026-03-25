@@ -20,3 +20,4 @@ export async function writeAuditLog(input: {
     throw new Error(`audit_log_failed:${error.message}`);
   }
 }
+

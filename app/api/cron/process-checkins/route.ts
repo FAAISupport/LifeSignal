@@ -15,3 +15,4 @@ export async function POST(request: Request) {
     return fail("CRON_FAILED", "Process check-ins failed", 500, String(error));
   }
 }
+

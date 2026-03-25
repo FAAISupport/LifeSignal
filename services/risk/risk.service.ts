@@ -64,3 +64,4 @@ export async function caregiverRiskSummary(monitoredPersonId: string) {
     topReasons
   };
 }
+

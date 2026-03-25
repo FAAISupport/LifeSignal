@@ -20,3 +20,4 @@ export async function POST(request: Request) {
   const escalation = await triggerEscalation({ ...parsed.data, triggeredByProfileId: auth.profileId });
   return ok({ escalation }, 201);
 }
+

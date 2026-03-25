@@ -68,3 +68,4 @@ export function maskName(name: string) {
 
   return `${first} ${last[0]}.`;
 }
+

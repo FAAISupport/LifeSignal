@@ -38,3 +38,4 @@ export interface AuthContext {
   role: AppRole;
   email: string;
 }
+

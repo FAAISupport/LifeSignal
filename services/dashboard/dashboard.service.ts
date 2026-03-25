@@ -140,3 +140,4 @@ export async function agencyDashboardData(profileId: string) {
 
   return { agency, highConcernQueue, elevatedQueue, newlyIncreased24h };
 }
+

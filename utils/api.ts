@@ -11,3 +11,4 @@ export function fail(code: string, message: string, status = 400, details?: unkn
     { status }
   );
 }
+

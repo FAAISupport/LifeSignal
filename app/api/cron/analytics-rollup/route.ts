@@ -13,3 +13,4 @@ export async function POST(request: Request) {
     return fail("CRON_FAILED", "Analytics rollup failed", 500, String(error));
   }
 }
+

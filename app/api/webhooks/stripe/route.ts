@@ -12,3 +12,4 @@ export async function POST(request: Request) {
     return fail("STRIPE_WEBHOOK_ERROR", "Stripe webhook processing failed", 400, String(error));
   }
 }
+

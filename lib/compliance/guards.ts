@@ -11,3 +11,4 @@ export async function assertMessagingConsentOrThrow(phone: string) {
 export async function canSendLifecycleMessage(phone: string): Promise<boolean> {
   return hasActiveMessagingConsent(phone);
 }
+

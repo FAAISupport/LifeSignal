@@ -201,3 +201,4 @@ export async function acknowledgeEscalationByToken(token: string, actorProfileId
 
   return { acknowledged: true, escalationId: step.escalation_id };
 }
+

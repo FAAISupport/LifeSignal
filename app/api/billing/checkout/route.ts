@@ -16,3 +16,4 @@ export async function POST(request: Request) {
   const session = await createCheckoutSession({ profileId: auth.profileId, email: auth.email, plan: parsed.data.plan });
   return ok(session);
 }
+

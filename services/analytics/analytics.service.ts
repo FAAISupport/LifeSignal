@@ -51,3 +51,4 @@ export async function aggregateAnalyticsSnapshot() {
     escalationCount7d: escalations ?? 0
   };
 }
+

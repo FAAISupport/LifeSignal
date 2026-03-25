@@ -19,3 +19,4 @@ export async function POST(request: Request) {
   if (!data) return fail("NOT_FOUND", "Referral code not found", 404);
   return ok({ referrer: data });
 }
+

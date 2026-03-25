@@ -95,3 +95,4 @@ export async function triggerEmergencyEvent(input: {
 
   return data;
 }
+

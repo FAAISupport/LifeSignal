@@ -64,3 +64,4 @@ export async function flagStaleIncidents() {
 
   return { flagged: incidents?.length ?? 0 };
 }
+

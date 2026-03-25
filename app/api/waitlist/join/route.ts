@@ -161,7 +161,6 @@ export async function POST(req: NextRequest) {
       });
     } catch (consentError) {
       console.error("consent logging failed:", consentError);
-      return fail(req, "consent-log-failed");
     }
 
     const { error: refreshError } = await supabase.rpc("refresh_waitlist_rankings");
@@ -171,15 +170,30 @@ export async function POST(req: NextRequest) {
       return fail(req, "ranking-refresh-failed");
     }
 
+    const { data: refreshedSignup, error: refreshedSignupError } = await supabase
+      .from("waitlist_signups")
+      .select("personal_referral_code, waitlist_position")
+      .eq("id", insertedSignup.id)
+      .single();
+
+    if (refreshedSignupError) {
+      console.error("refreshed signup lookup failed:", refreshedSignupError);
+      return fail(req, "post-insert-lookup-failed");
+    }
+
     const url = betaUrl(req);
     url.searchParams.set("joined", "1");
 
-    if (insertedSignup.personal_referral_code) {
-      url.searchParams.set("your_ref", insertedSignup.personal_referral_code);
+    if (refreshedSignup.personal_referral_code) {
+      url.searchParams.set("your_ref", refreshedSignup.personal_referral_code);
     }
 
     if (referralCode) {
       url.searchParams.set("ref", referralCode);
+    }
+
+    if (typeof refreshedSignup.waitlist_position === "number") {
+      url.searchParams.set("position", String(refreshedSignup.waitlist_position));
     }
 
     return NextResponse.redirect(url);
@@ -188,3 +202,4 @@ export async function POST(req: NextRequest) {
     return fail(req, "fatal");
   }
 }
+

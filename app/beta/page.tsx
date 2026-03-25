@@ -523,3 +523,4 @@ export default async function BetaPage({ searchParams }: BetaPageProps) {
     </SitePageShell>
   );
 }
+

@@ -140,3 +140,4 @@ export async function GET() {
     route: "/api/waitlist",
   });
 }
+

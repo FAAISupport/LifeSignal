@@ -27,3 +27,4 @@ export async function GET(request: Request) {
   const { data } = await query;
   return ok({ events: data ?? [] });
 }
+

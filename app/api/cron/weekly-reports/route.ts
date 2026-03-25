@@ -13,3 +13,4 @@ export async function POST(request: Request) {
     return fail("CRON_FAILED", "Weekly report generation failed", 500, String(error));
   }
 }
+

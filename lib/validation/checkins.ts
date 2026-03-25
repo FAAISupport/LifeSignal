@@ -20,3 +20,4 @@ export const voiceResponseSchema = z.object({
   Digits: z.string().optional(),
   From: z.string().min(4).optional()
 });
+

@@ -37,3 +37,4 @@ export async function POST(req: NextRequest) {
 
   return xml("LifeSignal received your message. If this is a safety check-in, reply YES. Reply HELP for help or STOP to opt out.");
 }
+

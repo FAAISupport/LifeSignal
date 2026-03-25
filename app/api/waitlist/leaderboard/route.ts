@@ -39,3 +39,4 @@ export async function GET() {
     return json(200, { count: 0, rows: [] });
   }
 }
+
