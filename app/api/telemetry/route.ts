@@ -1,18 +1,36 @@
 import { NextResponse } from "next/server";
-import { getLatestTelemetrySnapshots } from "@/lib/telemetry";
+import { createServerClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
-    const snapshots = await getLatestTelemetrySnapshots(12);
-    return NextResponse.json({ ok: true, snapshots });
+    const supabase = createServerClient();
+
+    const { data, error } = await supabase
+      .from("telemetry_snapshots")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      snapshots: data ?? [],
+    });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Unexpected server error";
+      error instanceof Error ? error.message : "Unexpected error";
 
-    console.error("/api/telemetry failed:", message);
+    console.error("/api/telemetry GET failed:", message);
 
     return NextResponse.json(
-      { ok: false, error: message, snapshots: [] },
+      {
+        ok: false,
+        error: message,
+        snapshots: [],
+      },
       { status: 500 }
     );
   }
