@@ -12,22 +12,16 @@ function getEnv(name: string): string {
 
 function normalizePhone(input: string): string | null {
   const trimmed = input.trim();
-  if (!trimmed) {
-    return null;
-  }
+  if (!trimmed) return null;
 
   if (trimmed.startsWith("+")) {
     return `+${trimmed.slice(1).replace(/\D/g, "")}`;
   }
 
   const digits = trimmed.replace(/\D/g, "");
-  if (digits.length === 10) {
-    return `+1${digits}`;
-  }
 
-  if (digits.length === 11 && digits.startsWith("1")) {
-    return `+${digits}`;
-  }
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
 
   return null;
 }
@@ -36,8 +30,14 @@ function clean(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function buildBetaUrl(req: NextRequest) {
+function betaUrl(req: NextRequest) {
   return new URL("/beta", req.url);
+}
+
+function fail(req: NextRequest, code: string) {
+  const url = betaUrl(req);
+  url.searchParams.set("error", code);
+  return NextResponse.redirect(url);
 }
 
 export async function POST(req: NextRequest) {
@@ -46,23 +46,18 @@ export async function POST(req: NextRequest) {
 
     const name = clean(formData.get("name"));
     const email = clean(formData.get("email")).toLowerCase();
-    const phoneRaw = clean(formData.get("phone"));
-    const phone = normalizePhone(phoneRaw);
+    const phone = normalizePhone(clean(formData.get("phone")));
     const useCase = clean(formData.get("useCase"));
     const referralCode = clean(formData.get("referralCode")).toUpperCase();
     const notes = clean(formData.get("notes"));
     const messagingConsent = clean(formData.get("messagingConsent"));
 
-    const consentSource = clean(formData.get("consentSource")) || "beta_form";
-    const consentStatus = clean(formData.get("consentStatus")) || "opted_in";
-    const consentChannel = clean(formData.get("consentChannel")) || "both";
-    const consentFormPath = clean(formData.get("consentFormPath")) || "/beta";
+    if (!name || !email || !phone) {
+      return fail(req, "missing-required-fields");
+    }
 
-    const redirectUrl = buildBetaUrl(req);
-
-    if (!name || !email || !phone || messagingConsent !== "yes") {
-      redirectUrl.searchParams.set("error", "1");
-      return NextResponse.redirect(redirectUrl);
+    if (messagingConsent !== "yes") {
+      return fail(req, "missing-consent");
     }
 
     const supabase = createClient(
@@ -78,29 +73,27 @@ export async function POST(req: NextRequest) {
     const userAgent = req.headers.get("user-agent");
     const referrer = req.headers.get("referer");
 
-    const { data: existingSignup, error: existingLookupError } = await supabase
+    const { data: existingSignup, error: existingError } = await supabase
       .from("waitlist_signups")
-      .select("id, email, personal_referral_code")
+      .select("id, personal_referral_code")
       .eq("email", email)
       .maybeSingle();
 
-    if (existingLookupError) {
-      throw new Error(`Existing signup lookup failed: ${existingLookupError.message}`);
+    if (existingError) {
+      console.error("existing signup lookup failed:", existingError);
+      return fail(req, "existing-lookup-failed");
     }
 
     if (existingSignup) {
-      redirectUrl.searchParams.set("joined", "1");
-      redirectUrl.searchParams.set("existing", "1");
+      const url = betaUrl(req);
+      url.searchParams.set("joined", "1");
+      url.searchParams.set("existing", "1");
 
       if (existingSignup.personal_referral_code) {
-        redirectUrl.searchParams.set("your_ref", existingSignup.personal_referral_code);
+        url.searchParams.set("your_ref", existingSignup.personal_referral_code);
       }
 
-      if (referralCode) {
-        redirectUrl.searchParams.set("ref", referralCode);
-      }
-
-      return NextResponse.redirect(redirectUrl);
+      return NextResponse.redirect(url);
     }
 
     let validReferrerCode: string | null = null;
@@ -113,15 +106,16 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (referrerError) {
-        throw new Error(`Referrer lookup failed: ${referrerError.message}`);
+        console.error("referrer lookup failed:", referrerError);
+        return fail(req, "referrer-lookup-failed");
       }
 
-      if (referrerRow && referrerRow.email.toLowerCase() !== email) {
+      if (referrerRow && referrerRow.email?.toLowerCase() !== email) {
         validReferrerCode = referrerRow.personal_referral_code;
       }
     }
 
-    const { data: insertedSignup, error: waitlistError } = await supabase
+    const { data: insertedSignup, error: insertError } = await supabase
       .from("waitlist_signups")
       .insert({
         name,
@@ -137,82 +131,60 @@ export async function POST(req: NextRequest) {
           original_referral_code_input: referralCode || null,
         },
       })
-      .select("id, personal_referral_code, waitlist_position")
+      .select("id, personal_referral_code")
       .single();
 
-    if (waitlistError) {
-      throw new Error(`Waitlist insert failed: ${waitlistError.message}`);
+    if (insertError) {
+      console.error("waitlist insert failed:", insertError);
+      return fail(req, "waitlist-insert-failed");
     }
 
-    await recordConsent({
-      phoneE164: phone,
-      email,
-      fullName: name,
-      source:
-        consentSource === "beta_form" ||
-        consentSource === "website" ||
-        consentSource === "caregiver_enrollment" ||
-        consentSource === "manual_admin" ||
-        consentSource === "inbound_sms" ||
-        consentSource === "voice_opt_in"
-          ? consentSource
-          : "beta_form",
-      status:
-        consentStatus === "opted_in" ||
-        consentStatus === "opted_out" ||
-        consentStatus === "help_requested" ||
-        consentStatus === "pending"
-          ? consentStatus
-          : "opted_in",
-      channel:
-        consentChannel === "sms" ||
-        consentChannel === "voice" ||
-        consentChannel === "both"
-          ? consentChannel
-          : "both",
-      ipAddress,
-      userAgent,
-      formPath: consentFormPath,
-      referrer,
-      metadata: {
-        useCase,
-        referralCode,
-        referredByCode: validReferrerCode,
-        notes,
-        origin: "waitlist_join_route",
-      },
-    });
+    try {
+      await recordConsent({
+        phoneE164: phone,
+        email,
+        fullName: name,
+        source: "beta_form",
+        status: "opted_in",
+        channel: "both",
+        ipAddress,
+        userAgent,
+        formPath: "/beta",
+        referrer,
+        metadata: {
+          useCase,
+          referralCode,
+          referredByCode: validReferrerCode,
+          notes,
+          origin: "waitlist_join_route",
+        },
+      });
+    } catch (consentError) {
+      console.error("consent logging failed:", consentError);
+      return fail(req, "consent-log-failed");
+    }
 
     const { error: refreshError } = await supabase.rpc("refresh_waitlist_rankings");
+
     if (refreshError) {
-      throw new Error(`Ranking refresh failed: ${refreshError.message}`);
+      console.error("ranking refresh failed:", refreshError);
+      return fail(req, "ranking-refresh-failed");
     }
 
-    const { data: refreshedSignup, error: refreshedSignupError } = await supabase
-      .from("waitlist_signups")
-      .select("personal_referral_code, waitlist_position")
-      .eq("id", insertedSignup.id)
-      .single();
+    const url = betaUrl(req);
+    url.searchParams.set("joined", "1");
 
-    if (refreshedSignupError) {
-      throw new Error(`Refreshed signup lookup failed: ${refreshedSignupError.message}`);
+    if (insertedSignup.personal_referral_code) {
+      url.searchParams.set("your_ref", insertedSignup.personal_referral_code);
     }
-
-    redirectUrl.searchParams.set("joined", "1");
 
     if (referralCode) {
-      redirectUrl.searchParams.set("ref", referralCode);
+      url.searchParams.set("ref", referralCode);
     }
 
-    if (refreshedSignup.personal_referral_code) {
-      redirectUrl.searchParams.set("your_ref", refreshedSignup.personal_referral_code);
-    }
-
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(url);
   } catch (error) {
-    console.error("Waitlist join failed:", error);
-    const redirectUrl = buildBetaUrl(req);
-    redirectUrl.searchParams.set("error", "1");
-    return NextResponse.redirect(redirectUrl);
+    console.error("waitlist join fatal error:", error);
+    return fail(req, "fatal");
   }
 }
