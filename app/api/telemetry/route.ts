@@ -1,23 +1,13 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase/server";
+import { getLatestTelemetrySnapshots } from "@/lib/telemetry";
 
 export async function GET() {
   try {
-    const supabase = createServerClient();
-
-    const { data, error } = await supabase
-      .from("telemetry_snapshots")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (error) {
-      throw new Error(error.message);
-    }
+    const snapshots = await getLatestTelemetrySnapshots(50);
 
     return NextResponse.json({
       ok: true,
-      snapshots: data ?? [],
+      snapshots,
     });
   } catch (error) {
     const message =
