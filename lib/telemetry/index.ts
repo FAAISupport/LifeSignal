@@ -111,7 +111,7 @@ export async function createTelemetrySnapshot(input: TelemetryInput) {
     .from("telemetry_snapshots")
     .insert(payload)
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Failed to create telemetry snapshot: ${error.message}`);

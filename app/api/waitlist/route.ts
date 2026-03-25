@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       .from("waitlist")
       .insert(insertPayload)
       .select("id, created_at")
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Supabase waitlist insert error", {

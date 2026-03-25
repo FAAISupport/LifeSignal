@@ -21,7 +21,7 @@ export async function triggerEscalation(input: TriggerEscalationInput) {
       status: "pending"
     })
     .select("id, monitored_person_id, status, reason, triggered_at")
-    .single();
+    .maybeSingle();
 
   if (error || !escalation) {
     throw new Error(`escalation_trigger_failed:${error?.message}`);
@@ -40,7 +40,7 @@ export async function triggerEscalation(input: TriggerEscalationInput) {
       .from("profiles")
       .select("id, phone")
       .eq("id", guardian.guardian_profile_id)
-      .single();
+      .maybeSingle();
 
     await supabase.from("escalation_steps").insert({
       escalation_id: escalation.id,
@@ -100,7 +100,7 @@ export async function processEscalationSteps(nowIso?: string) {
       .from("escalations")
       .select("id, monitored_person_id, status")
       .eq("id", step.escalation_id)
-      .single();
+      .maybeSingle();
 
     if (!escalation || ["acknowledged", "resolved", "cancelled"].includes(escalation.status)) {
       await supabase.from("escalation_steps").update({ status: "skipped" }).eq("id", step.id);
@@ -111,13 +111,13 @@ export async function processEscalationSteps(nowIso?: string) {
       .from("monitored_people")
       .select("id, preferred_name")
       .eq("id", escalation.monitored_person_id)
-      .single();
+      .maybeSingle();
 
     const { data: guardian } = await supabase
       .from("profiles")
       .select("id, phone")
       .eq("id", step.guardian_profile_id)
-      .single();
+      .maybeSingle();
 
     if (step.channel === "sms" && guardian?.phone) {
       const ackLink = `${process.env.NEXT_PUBLIC_APP_URL}/api/escalations/acknowledge?token=${step.ack_token}`;
@@ -164,7 +164,7 @@ export async function acknowledgeEscalationByToken(token: string, actorProfileId
     .from("escalation_steps")
     .select("id, escalation_id, status")
     .eq("ack_token", token)
-    .single();
+    .maybeSingle();
 
   if (!step) {
     return { acknowledged: false, reason: "token_not_found" };

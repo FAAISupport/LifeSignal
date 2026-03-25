@@ -89,7 +89,7 @@ export async function processPendingCheckins(nowIso?: string) {
       .from("monitored_people")
       .select("id, profile_id, preferred_name, phone")
       .eq("id", checkin.monitored_person_id)
-      .single();
+      .maybeSingle();
 
     if (!mp?.phone) {
       continue;
@@ -181,7 +181,7 @@ export async function processSmsResponse(input: { from: string; body: string; pa
     .from("monitored_people")
     .select("id")
     .eq("phone", input.from)
-    .single();
+    .maybeSingle();
 
   if (!person) {
     return { matched: false };
@@ -259,7 +259,7 @@ export async function processVoiceResponse(input: {
   });
 
   if (valid) {
-    const { data: checkin } = await supabase.from("checkins").select("expected_at").eq("id", input.checkinId).single();
+    const { data: checkin } = await supabase.from("checkins").select("expected_at").eq("id", input.checkinId).maybeSingle();
     const latency = checkin?.expected_at
       ? Math.max(0, Math.round((Date.now() - new Date(checkin.expected_at).getTime()) / 60000))
       : null;

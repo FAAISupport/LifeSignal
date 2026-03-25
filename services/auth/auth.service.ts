@@ -25,7 +25,7 @@ export async function bootstrapProfile(input: {
       { onConflict: "id" }
     )
     .select("id,email,role")
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     throw new Error(`profile_bootstrap_failed:${error?.message}`);

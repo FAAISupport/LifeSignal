@@ -14,7 +14,7 @@ export async function confirmMedicationLog(input: {
     .update({ status: "confirmed", confirmed_at: now, confirmation_source: input.source })
     .eq("id", input.medicationLogId)
     .select("id, monitored_person_id")
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     throw new Error(`medication_confirm_failed:${error?.message}`);
@@ -44,7 +44,7 @@ export async function confirmRecoveryCheckin(input: {
     .update({ status: "responded", responded_at: now, response_channel: input.responseChannel })
     .eq("id", input.recoveryCheckinId)
     .select("id, monitored_person_id")
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     throw new Error(`recovery_confirm_failed:${error?.message}`);
@@ -79,7 +79,7 @@ export async function triggerEmergencyEvent(input: {
       details: input.details ?? null
     })
     .select("id, monitored_person_id, status, created_at")
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     throw new Error(`emergency_trigger_failed:${error?.message}`);

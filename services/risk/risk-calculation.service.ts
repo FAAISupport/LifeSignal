@@ -96,7 +96,7 @@ export async function calculateDailyRiskSnapshots(snapshotDate: string) {
         { onConflict: "monitored_person_id,snapshot_date" }
       )
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (error || !snapshot) throw new Error(`risk_snapshot_failed:${error?.message}`);
 

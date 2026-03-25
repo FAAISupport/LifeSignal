@@ -94,7 +94,7 @@ export async function recordConsent(input: RecordConsentInput) {
     .from("message_consent_logs")
     .insert(payload)
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Failed to record consent: ${error.message}`);

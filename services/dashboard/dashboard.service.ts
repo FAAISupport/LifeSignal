@@ -8,7 +8,7 @@ export async function seniorDashboardData(profileId: string) {
     .from("monitored_people")
     .select("id, preferred_name")
     .eq("profile_id", profileId)
-    .single();
+    .maybeSingle();
 
   if (!monitored) {
     return null;
@@ -63,7 +63,7 @@ export async function caregiverDashboardData(profileId: string) {
   const cards = [] as Array<Record<string, unknown>>;
   for (const monitoredPersonId of monitoredIds) {
     const [{ data: monitored }, { data: checkin }, riskSummary] = await Promise.all([
-      supabase.from("monitored_people").select("id, preferred_name").eq("id", monitoredPersonId).single(),
+      supabase.from("monitored_people").select("id, preferred_name").eq("id", monitoredPersonId).maybeSingle(),
       supabase
         .from("checkins")
         .select("status, expected_at, responded_at")
@@ -100,7 +100,7 @@ export async function agencyDashboardData(profileId: string) {
 
   if (!membership) return { agency: null, highConcernQueue: [], elevatedQueue: [], newlyIncreased24h: [] };
 
-  const { data: agency } = await supabase.from("agencies").select("id, name").eq("id", membership.agency_id).single();
+  const { data: agency } = await supabase.from("agencies").select("id, name").eq("id", membership.agency_id).maybeSingle();
 
   const { data: residents } = await supabase
     .from("monitored_people")

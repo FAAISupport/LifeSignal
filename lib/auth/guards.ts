@@ -16,7 +16,7 @@ export async function requireAuth(allowedRoles?: AppRole[]): Promise<AuthContext
     .from("profiles")
     .select("id,email,role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (error || !profile) {
     return NextResponse.json({ ok: false, error: { code: "PROFILE_MISSING", message: "Profile not found." } }, { status: 403 });

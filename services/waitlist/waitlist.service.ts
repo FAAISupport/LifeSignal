@@ -48,7 +48,7 @@ export async function joinWaitlist(input: {
       referred_by_waitlist_user_id: referredBy
     })
     .select("id, email, referral_code, joined_at, referral_count, spots_gained, beta_eligibility")
-    .single();
+    .maybeSingle();
 
   if (error || !user) {
     throw new Error(`waitlist_join_failed:${error?.message}`);
@@ -66,7 +66,7 @@ export async function joinWaitlist(input: {
       .from("waitlist_users")
       .select("id, referral_count")
       .eq("id", referredBy)
-      .single();
+      .maybeSingle();
 
     if (referrer) {
       const newCount = (referrer.referral_count ?? 0) + 1;
@@ -91,7 +91,7 @@ export async function waitlistDashboard(email: string) {
     .from("waitlist_users")
     .select("id, name, email, city, state, referral_code, referral_count, spots_gained, beta_eligibility, joined_at")
     .eq("email", email)
-    .single();
+    .maybeSingle();
 
   if (!user) return null;
 
