@@ -1,10 +1,11 @@
 import { CheckoutClient } from '@/components/builder/CheckoutClient';
+import { env } from '@/lib/env';
 
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ sessionId?: string }> }) {
   const { sessionId } = await searchParams;
   if (!sessionId) return <main className='p-6'>Missing session.</main>;
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/builder/checkout`, {
+  const response = await fetch(`${env.NEXT_PUBLIC_APP_URL}/api/builder/checkout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sessionId }),
