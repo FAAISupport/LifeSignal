@@ -2,8 +2,21 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createCheckout } from '@/services/billing/billing.service';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import type { ChurchPlan } from '@/lib/churchos/modules';
 
 const schema = z.object({ sessionId: z.string().uuid() });
+
+function mapSuggestedTierToPlan(tier: string): ChurchPlan {
+  if (tier === 'enterprise') {
+    return 'care';
+  }
+
+  if (tier === 'growth') {
+    return 'growth';
+  }
+
+  return 'core';
+}
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +29,8 @@ export async function POST(req: Request) {
       sessionId,
       orgName: session.profile.churchName,
       orgSlug,
-      amount: session.monthly_total,
+      plan: mapSuggestedTierToPlan(session.suggested_tier),
+      addons: [],
       selectedModules: session.selected_modules,
       email: session.profile.contactEmail,
     });

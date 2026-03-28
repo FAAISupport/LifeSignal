@@ -9,7 +9,7 @@ const schema = z.object({
     contactEmail: z.string().email(),
     phone: z.string().min(7),
     cityState: z.string().min(2),
-    attendanceBand: z.string(),
+    attendanceBand: z.enum(['under_100', '100_250', '250_500', '500_1000', '1000_plus']),
     ministryFocus: z.string().min(2),
   }),
   pains: z.array(z.string()).min(1),

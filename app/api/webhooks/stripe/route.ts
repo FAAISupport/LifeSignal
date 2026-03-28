@@ -4,6 +4,27 @@ import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import type { ChurchAddon, ChurchPlan } from '@/lib/churchos/modules';
+import { getModulesForPlan } from '@/lib/churchos/modules';
+
+function normalizePlan(value: string | undefined): ChurchPlan {
+  if (value === 'growth' || value === 'care') {
+    return value;
+  }
+
+  return 'core';
+}
+
+function normalizeAddons(raw: string | undefined): ChurchAddon[] {
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item): item is ChurchAddon => item === 'giving' || item === 'sms');
+}
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -20,23 +41,60 @@ export async function POST(req: Request) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata ?? {};
-    await supabaseAdmin.from('organizations').upsert({
-      slug: metadata.orgSlug,
-      name: metadata.orgName,
-      plan: 'growth',
-      status: 'active',
-      stripe_customer_id: session.customer,
-    }, { onConflict: 'slug' });
+    const orgId = metadata.orgId;
+    const plan = normalizePlan(metadata.plan);
+    const addons = normalizeAddons(metadata.addons);
 
-    await supabaseAdmin.from('subscriptions').upsert({
-      stripe_customer_id: session.customer,
-      stripe_subscription_id: session.subscription,
-      status: 'active',
-      amount_monthly: session.amount_total ? session.amount_total / 100 : 0,
-      currency: session.currency ?? 'usd',
-    }, { onConflict: 'stripe_subscription_id' });
+    if (orgId) {
+      await supabaseAdmin
+        .from('organizations')
+        .update({
+          plan,
+          status: 'active',
+          stripe_customer_id: session.customer,
+        })
+        .eq('id', orgId);
+    } else {
+      await supabaseAdmin.from('organizations').upsert(
+        {
+          slug: metadata.orgSlug,
+          name: metadata.orgName,
+          plan,
+          status: 'active',
+          stripe_customer_id: session.customer,
+        },
+        { onConflict: 'slug' }
+      );
+    }
 
-    await supabaseAdmin.from('builder_sessions').update({ converted_at: new Date().toISOString() }).eq('id', metadata.builderSessionId);
+    await supabaseAdmin.from('subscriptions').upsert(
+      {
+        org_id: orgId ?? null,
+        stripe_customer_id: session.customer,
+        stripe_subscription_id: session.subscription,
+        status: 'active',
+        plan,
+        addons,
+        amount_monthly: session.amount_total ? session.amount_total / 100 : 0,
+        currency: session.currency ?? 'usd',
+      },
+      { onConflict: 'stripe_subscription_id' }
+    );
+
+    if (orgId) {
+      const modules = [...getModulesForPlan(plan), ...(addons.includes('giving') ? ['giving'] : [])];
+      await supabaseAdmin.from('organization_modules').delete().eq('org_id', orgId);
+      await supabaseAdmin
+        .from('organization_modules')
+        .insert(modules.map((moduleKey) => ({ org_id: orgId, module_key: moduleKey, active: true })));
+    }
+
+    if (metadata.builderSessionId) {
+      await supabaseAdmin
+        .from('builder_sessions')
+        .update({ converted_at: new Date().toISOString() })
+        .eq('id', metadata.builderSessionId);
+    }
   }
 
   if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {

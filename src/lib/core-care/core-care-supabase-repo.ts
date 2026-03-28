@@ -325,7 +325,8 @@ export class CoreCareSupabaseRepo implements CoreCareRepository {
     stepNumber?: number | null;
     channel?: "sms" | "voice" | "escalation_sms" | "escalation_voice" | null;
     occurredAt: string;
-    organizationId?: string | null;`r`n    metadata?: Record<string, unknown>;
+    organizationId?: string | null;
+    metadata?: Record<string, unknown>;
   }): Promise<void> {
     const { error } = await this.supabase.from("care_events").insert({
       type: event.type,
@@ -334,7 +335,8 @@ export class CoreCareSupabaseRepo implements CoreCareRepository {
       incident_id: event.incidentId ?? null,
       step_number: event.stepNumber ?? null,
       channel: event.channel ?? null,
-      occurred_at: event.occurredAt,`r`n      organization_id: event.organizationId ?? null,
+      occurred_at: event.occurredAt,
+      organization_id: event.organizationId ?? null,
       metadata: (event.metadata ?? {}) as Json,
     });
 
