@@ -12,6 +12,8 @@ export async function POST(req: Request) {
     const result = await executeCheckin({ orgId: context.orgId, memberId: payload.memberId, message: payload.message, channel: payload.channel });
     return NextResponse.json({ result });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Check-in run failed' }, { status: 400 });
+    const message = error instanceof Error ? error.message : 'Check-in run failed';
+    const status = message === 'Unauthorized' ? 401 : message === 'No organization membership found' ? 403 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }
