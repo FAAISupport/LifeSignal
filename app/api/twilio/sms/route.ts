@@ -1,60 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+import { createEscalationForCheckin } from '@/lib/lifesignal/escalation-engine';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+export async function POST(req: Request) {
+  const form = await req.formData();
+  const from = String(form.get('From') ?? '');
+  const body = String(form.get('Body') ?? '').trim().toUpperCase();
 
-export async function POST(req: NextRequest) {
-  const formData = await req.formData()
+  const { data: member } = await supabaseAdmin.from('monitored_members').select('*').eq('phone', from).single();
+  if (!member) return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response><Message>Member not found.</Message></Response>', { headers: { 'Content-Type': 'text/xml' } });
 
-  const body = formData.get('Body')?.toString().trim().toUpperCase() ?? ''
-  const from = formData.get('From')?.toString() ?? ''
+  const { data: checkin } = await supabaseAdmin
+    .from('checkins')
+    .select('*')
+    .eq('member_id', member.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  console.log('Incoming SMS:', { body, from })
-
-  if (!from) {
-    return new NextResponse('Missing sender', { status: 400 })
-  }
+  if (!checkin) return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response><Message>No pending check-in found.</Message></Response>', { headers: { 'Content-Type': 'text/xml' } });
 
   if (body === 'YES' || body === 'OK') {
-    const { error } = await supabase.from('checkins').insert({
-      phone: from,
-      status: 'responded',
-      response: body
-    })
-
-    if (error) {
-      console.error('Supabase insert error:', error)
-    }
-
-    return new NextResponse(
-      '<Response><Message>Got it. You are marked safe.</Message></Response>',
-      { headers: { 'Content-Type': 'text/xml' } }
-    )
+    await supabaseAdmin.from('checkins').update({ status: 'confirmed', response_text: body, responded_at: new Date().toISOString() }).eq('id', checkin.id);
+    return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response><Message>Thanks, your check-in is confirmed.</Message></Response>', { headers: { 'Content-Type': 'text/xml' } });
   }
 
   if (body === 'HELP') {
-    const { error } = await supabase.from('checkins').insert({
-      phone: from,
-      status: 'help_requested',
-      response: body
-    })
-
-    if (error) {
-      console.error('Supabase insert error:', error)
-    }
-
-    return new NextResponse(
-      '<Response><Message>Help request received. Someone will contact you.</Message></Response>',
-      { headers: { 'Content-Type': 'text/xml' } }
-    )
+    await supabaseAdmin.from('checkins').update({ status: 'escalated', response_text: body, responded_at: new Date().toISOString() }).eq('id', checkin.id);
+    await createEscalationForCheckin(member.org_id, member.id, checkin.id, 'SMS HELP received from member.');
+    return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response><Message>Help request received. Care team alerted.</Message></Response>', { headers: { 'Content-Type': 'text/xml' } });
   }
 
-  return new NextResponse(
-    '<Response><Message>Please reply YES to confirm you are okay.</Message></Response>',
-    { headers: { 'Content-Type': 'text/xml' } }
-  )
+  return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response><Message>Reply YES, OK, or HELP.</Message></Response>', { headers: { 'Content-Type': 'text/xml' } });
 }
-
