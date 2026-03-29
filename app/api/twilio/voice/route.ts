@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="dtmf" timeout="6" numDigits="1" action="/api/twilio/voice?checkinId=${checkinId}" method="POST">
-    <Say>ChurchOS care check-in. Press 1 if you are okay. Press 2 to request help now.</Say>
+    <Say>FaithSignal care check-in. Press 1 if you are okay. Press 2 to request help now.</Say>
   </Gather>
   <Say>We did not receive a response. Your care team will follow up.</Say>
 </Response>`;

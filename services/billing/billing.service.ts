@@ -18,7 +18,7 @@ export async function createCheckout(params: {
         price_data: {
           currency: 'usd',
           recurring: { interval: 'month' },
-          product_data: { name: 'ChurchOS Builder V3 Subscription' },
+          product_data: { name: 'FaithSignal Builder V3 Subscription' },
           unit_amount: Math.round(params.amount * 100),
         },
         quantity: 1,

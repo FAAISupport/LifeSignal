@@ -1,4 +1,4 @@
-# ChurchOS Builder V3 Setup
+# FaithSignal Builder V3 Setup
 
 ## 1) Install dependencies
 

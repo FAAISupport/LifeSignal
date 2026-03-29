@@ -7,7 +7,7 @@ export function ProposalView({ profile, selectedModules, tier }: { profile: Buil
   return (
     <article className='space-y-6 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm'>
       <header>
-        <h1 className='text-3xl font-bold'>ChurchOS Builder Proposal</h1>
+        <h1 className='text-3xl font-bold'>FaithSignal Builder Proposal</h1>
         <p className='text-slate-600'>{profile.churchName} · {profile.cityState}</p>
       </header>
       <section>

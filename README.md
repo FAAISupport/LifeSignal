@@ -1,6 +1,6 @@
-# ChurchOS Builder V3
+# FaithSignal Builder V3
 
-ChurchOS Builder V3 is a multi-tenant SaaS platform for churches and care ministries. It combines:
+FaithSignal Builder V3 is a multi-tenant SaaS platform for churches and care ministries. It combines:
 
 - a guided **Builder** (assessment → recommendations → proposal → checkout)
 - **LifeSignal Core** automation (check-ins, escalations, incidents, risk)
