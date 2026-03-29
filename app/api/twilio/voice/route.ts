@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { parseSmsIntent, buildSmsResponse } from "@/lib/twilio";
+import { buildVoiceFinalResponse, buildVoiceGatherResponse, parseVoiceIntent } from "@/lib/twilio";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { respondToCheckin } from "@/services/lifesignal/checkins.service";
 import { escalateCheckinIfNeeded } from "@/lib/lifesignal/escalation-engine";
@@ -18,25 +18,23 @@ function xml(body: string) {
 async function findLatestOpenCheckinByPhone(phone: string) {
   const admin = createAdminClient();
 
-  const { data: member, error: memberError } = await admin
+  const { data: member } = await admin
     .from("monitored_members")
     .select("id, org_id")
     .eq("phone_e164", phone)
     .maybeSingle<{ id: string; org_id: string }>();
 
-  if (memberError || !member) {
-    return null;
-  }
+  if (!member) return null;
 
   const { data: checkin } = await admin
     .from("checkins")
-    .select("id, org_id, member_id, status")
+    .select("id, org_id, member_id")
     .eq("org_id", member.org_id)
     .eq("member_id", member.id)
     .in("status", ["pending", "sent", "help_requested"])
     .order("due_at", { ascending: false })
     .limit(1)
-    .maybeSingle<{ id: string; org_id: string; member_id: string; status: string }>();
+    .maybeSingle<{ id: string; org_id: string; member_id: string }>();
 
   return checkin ?? null;
 }
@@ -45,22 +43,27 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
     const from = String(form.get("From") ?? "").trim();
-    const body = String(form.get("Body") ?? "").trim();
+    const digits = String(form.get("Digits") ?? "").trim();
 
     if (!from) {
-      return xml(buildSmsResponse("We could not verify your sender number. Please try again."));
+      return xml(buildVoiceFinalResponse("We could not identify your call. Goodbye."));
+    }
+
+    if (!digits) {
+      const actionUrl = new URL(request.url);
+      return xml(buildVoiceGatherResponse(actionUrl.toString()));
     }
 
     const checkin = await findLatestOpenCheckinByPhone(from);
     if (!checkin) {
-      return xml(buildSmsResponse("No active check-in was found for this number."));
+      return xml(buildVoiceFinalResponse("No active check-in was found for this number. Goodbye."));
     }
 
-    const intent = parseSmsIntent(body);
+    const intent = parseVoiceIntent(digits);
 
-    if (intent === "yes") {
-      await respondToCheckin({ checkinId: checkin.id, responseText: "YES" });
-      return xml(buildSmsResponse("Thank you. Your check-in has been recorded as safe."));
+    if (intent === "confirm") {
+      await respondToCheckin({ checkinId: checkin.id, responseText: "1" });
+      return xml(buildVoiceFinalResponse("Thank you. Your check-in is confirmed."));
     }
 
     if (intent === "help") {
@@ -71,13 +74,11 @@ export async function POST(request: Request) {
         checkinId: checkin.id,
         reason: "help_requested",
       });
-
-      return xml(buildSmsResponse("Help request received. We are notifying your care team now."));
+      return xml(buildVoiceFinalResponse("Help request received. Your care team is being notified now."));
     }
 
-    return xml(buildSmsResponse("Please reply YES if you are safe or HELP if you need immediate assistance."));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected SMS processing error";
-    return xml(buildSmsResponse(`We could not process your response. ${message}`));
+    return xml(buildVoiceFinalResponse("Invalid selection. Please answer the next check-in call."));
+  } catch {
+    return xml(buildVoiceFinalResponse("We could not process your response. Goodbye."));
   }
 }
