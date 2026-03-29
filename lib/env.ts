@@ -19,6 +19,8 @@ const baseSchema = z.object({
   TWILIO_MESSAGING_SERVICE_SID: z.string().min(1),
   TWILIO_PHONE_NUMBER: z.string().min(4),
   TWILIO_STATUS_CALLBACK_BASE_URL: z.string().url(),
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_MODEL: z.string().min(1).optional(),
 });
 
 const serverSchema = baseSchema.extend({
