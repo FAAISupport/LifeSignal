@@ -1,4 +1,4 @@
-export type OrganizationPlan = 'starter' | 'growth' | 'enterprise';
+export type OrganizationPlan = 'core' | 'growth' | 'care';
 export type OrganizationStatus = 'pending' | 'active' | 'disabled';
 
 export interface Organization {
