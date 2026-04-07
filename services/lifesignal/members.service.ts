@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type MonitoredMember = {
   id: string;
@@ -9,7 +9,7 @@ export type MonitoredMember = {
 };
 
 export async function listActiveMembers(orgId: string) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("monitored_members")
     .select("id, org_id, full_name, phone_e164, status")
@@ -24,7 +24,7 @@ export async function listActiveMembers(orgId: string) {
 }
 
 export async function getMemberById(memberId: string) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("monitored_members")
     .select("id, org_id, full_name, phone_e164, status")
@@ -37,3 +37,4 @@ export async function getMemberById(memberId: string) {
 
   return data;
 }
+

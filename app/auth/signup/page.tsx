@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function slugifyOrganizationName(value: string) {
@@ -44,7 +44,7 @@ async function signup(formData: FormData) {
     redirect(`/auth/signup?error=${encodeURIComponent(signUpError?.message ?? "Failed to create account")}`);
   }
 
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
   const slugBase = slugifyOrganizationName(organizationName);
   const slug = `${slugBase}-${randomUUID().slice(0, 6)}`;
 
@@ -161,4 +161,7 @@ export default async function SignupPage({
     </main>
   );
 }
+
+
+
 

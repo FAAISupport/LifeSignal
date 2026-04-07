@@ -69,3 +69,4 @@ export async function requestRecommendationsFromOpenAI(input: {
 
   return parsed;
 }
+

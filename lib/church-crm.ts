@@ -31,3 +31,4 @@ export function nextStatus(status: ChurchLeadStatus): ChurchLeadStatus {
   const index = flow.indexOf(status);
   return flow[Math.min(index + 1, flow.length - 1)];
 }
+

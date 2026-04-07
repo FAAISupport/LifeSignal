@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient as createServerClient } from "@/lib/supabase/server";
 
 export type OrganizationRole = "owner" | "admin" | "manager" | "member" | "viewer";
@@ -68,7 +68,7 @@ export async function listInvites(orgId: string) {
 }
 
 export async function acceptInvite(params: { token: string; userId: string }) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
 
   const { data: invite, error: inviteError } = await admin
     .from("invites")
@@ -150,6 +150,7 @@ export async function acceptInvite(params: { token: string; userId: string }) {
     role: invite.role,
   };
 }
+
 
 
 

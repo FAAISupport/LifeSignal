@@ -122,3 +122,6 @@ export default async function WaitlistSuccessPage({ searchParams }: SuccessPageP
     </main>
   );
 }
+
+
+

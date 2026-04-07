@@ -1,5 +1,1 @@
-import LifeSignalTwilioCheckinEscalationUI from "@/components/lifesignal/LifeSignalTwilioCheckinEscalationUI";
-
-export default function LifeSignalOperationsPage() {
-  return <LifeSignalTwilioCheckinEscalationUI />;
-}
+export default function Page() { return <div className="p-10 text-white">Operations coming soon</div>; }

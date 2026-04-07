@@ -38,3 +38,5 @@ export function IncidentTable({ incidents }: { incidents: IncidentRow[] }) {
     </div>
   );
 }
+
+

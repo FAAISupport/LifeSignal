@@ -12,3 +12,4 @@ export async function canSendLifecycleMessage(phone: string): Promise<boolean> {
   return hasActiveMessagingConsent(phone);
 }
 
+

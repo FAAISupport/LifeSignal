@@ -105,7 +105,7 @@ export default function FaithSignalPage() {
 
   return (
     <main className="min-h-screen bg-transparent text-white">
-      <section className="relative overflow-hidden border-b border-cyan-500/10 px-6 pb-16 pt-24 sm:pb-20 sm:pt-28">
+      <section className="relative overflow-hidden border-b border-cyan-500/10 px-6 pb-16 pt-10 pb-16 sm:pb-20 sm:pt-28">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.16),_transparent_34%)]" />
 
         <div className="relative mx-auto max-w-6xl">
@@ -268,3 +268,6 @@ export default function FaithSignalPage() {
     </main>
   );
 }
+
+
+

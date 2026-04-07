@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type IncidentRecord = {
   id: string;
@@ -10,7 +10,7 @@ export type IncidentRecord = {
 };
 
 export async function findOpenIncidentForCheckin(checkinId: string) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("incidents")
     .select("id, org_id, member_id, checkin_id, status, severity")
@@ -32,7 +32,7 @@ export async function createIncident(input: {
   checkinId: string;
   severity?: IncidentRecord["severity"];
 }) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("incidents")
     .insert({
@@ -57,7 +57,7 @@ export async function acknowledgeIncident(input: {
   incidentId: string;
   acknowledgedByUserId: string | null;
 }) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("incidents")
     .update({
@@ -76,3 +76,4 @@ export async function acknowledgeIncident(input: {
 
   return data;
 }
+

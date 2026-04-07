@@ -2,7 +2,7 @@ import type Stripe from "stripe";
 import { NextResponse } from "next/server";
 
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function unixToIso(value?: number | null) {
   if (!value) return null;
@@ -11,7 +11,7 @@ function unixToIso(value?: number | null) {
 
 export async function POST(request: Request) {
   const stripe = getStripeClient();
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
 
   try {
     const signature = request.headers.get("stripe-signature");
@@ -102,3 +102,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }
+

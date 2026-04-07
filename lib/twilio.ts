@@ -62,3 +62,4 @@ export function buildVoiceFinalResponse(message: string) {
   response.hangup();
   return response.toString();
 }
+

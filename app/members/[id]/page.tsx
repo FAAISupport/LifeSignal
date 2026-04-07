@@ -56,3 +56,5 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
   );
 }
 
+
+

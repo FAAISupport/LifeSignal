@@ -27,3 +27,4 @@ export function createSupabaseBrowserClient() {
 }
 
 export const createClient = createSupabaseBrowserClient;
+

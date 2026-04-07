@@ -38,3 +38,5 @@ export function CheckinLogTable({ checkins }: { checkins: CheckinRow[] }) {
     </div>
   );
 }
+
+

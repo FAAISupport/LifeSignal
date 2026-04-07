@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 function makeReferralCode(name: string, email: string) {
   const baseName = (name || "guest")
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const supabase = createAdminClient()
+    const supabase = createSupabaseAdminClient()
 
     const { data: existing, error: existingError } = await supabase
       .from("waitlist_entries")
@@ -129,3 +129,4 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+

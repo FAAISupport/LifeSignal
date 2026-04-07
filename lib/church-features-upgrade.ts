@@ -97,3 +97,4 @@ export const allChurchFeatures: ChurchFeature[] = [
     value: "Hyper-local care response"
   }
 ];
+

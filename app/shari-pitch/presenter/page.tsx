@@ -49,7 +49,7 @@ export default function ShariPitchPresenterPage() {
     <main className="min-h-screen bg-slate-950 text-white">
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_40%)]" />
-        <div className="mx-auto max-w-7xl px-8 py-20 lg:px-12 lg:py-24">
+        <div className="mx-auto max-w-7xl px-8 py-20 lg:px-12 lg:pt-10 pb-16">
           <div className="max-w-6xl space-y-8">
             <p className="text-cyan-300 text-lg font-medium uppercase tracking-[0.45em]">
               Private Investor Presentation
@@ -192,3 +192,6 @@ export default function ShariPitchPresenterPage() {
     </main>
   );
 }
+
+
+

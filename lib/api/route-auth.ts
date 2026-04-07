@@ -19,3 +19,4 @@ export function requireBearerToken(req: NextRequest) {
 
   return { ok: true as const };
 }
+

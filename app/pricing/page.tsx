@@ -6,25 +6,25 @@ const plans = [
     name: "LifeSignal Family",
     description: "Daily safety check-ins for families supporting independent living.",
     price: "/mo",
-    priceId: PADDLE_PRICE_IDS.lifesignalfamilymonthly,
+    priceId: PADDLE_PRICE_IDS.lifesignalFamilyMonthly,
   },
   {
     name: "LifeSignal Caregiver",
     description: "Care dashboards, check-in oversight, and escalation visibility.",
     price: "/mo",
-    priceId: PADDLE_PRICE_IDS.lifesignalcaregivermonthly,
+    priceId: PADDLE_PRICE_IDS.lifesignalCaregiverMonthly,
   },
   {
     name: "FaithSignal Church",
     description: "Pastoral care workflows, care visibility, and member follow-up.",
     price: "/mo",
-    priceId: PADDLE_PRICE_IDS.faithsignalchurchmonthly,
+    priceId: PADDLE_PRICE_IDS.faithsignalChurchMonthly,
   },
   {
     name: "FaithSignal Add-on: Pastoral Care Rounds",
     description: "Structured follow-up and care-routing for church teams.",
     price: "/mo",
-    priceId: PADDLE_PRICE_IDS.faithsignalpastoralrounds,
+    priceId: PADDLE_PRICE_IDS.faithsignalPastoralRounds,
   },
 ];
 
@@ -59,7 +59,7 @@ export default function PricingPage() {
 
               <div className="mt-6">
                 <PaddleCheckoutButton
-                  label={Start }
+                  label="Start trial"
                   priceId={plan.priceId}
                 />
               </div>
@@ -70,3 +70,8 @@ export default function PricingPage() {
     </main>
   );
 }
+
+
+
+
+

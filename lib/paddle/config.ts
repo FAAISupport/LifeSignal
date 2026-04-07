@@ -33,3 +33,4 @@ export function isPaddleConfigured() {
       PADDLE_WEBHOOK_SECRET
   );
 }
+

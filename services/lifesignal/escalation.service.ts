@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function createEscalationSteps(input: {
   orgId: string;
@@ -6,7 +6,7 @@ export async function createEscalationSteps(input: {
   memberName: string;
   memberPhone: string;
 }) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
 
   const steps = [
     {
@@ -46,7 +46,7 @@ export async function logEscalationEvent(input: {
     | "incident_resolved";
   payload?: Record<string, unknown>;
 }) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
   const { error } = await admin.from("escalation_events").insert({
     org_id: input.orgId,
     incident_id: input.incidentId,
@@ -66,7 +66,7 @@ export async function acknowledgeEscalationStep(input: {
   stepId?: string;
   ackToken?: string;
 }) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
 
   if (!input.stepId && !input.ackToken) {
     throw new Error("Either stepId or ackToken is required");
@@ -97,3 +97,4 @@ export async function acknowledgeEscalationStep(input: {
 
   return data;
 }
+

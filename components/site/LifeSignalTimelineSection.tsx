@@ -57,7 +57,7 @@ const item = {
 
 export default function LifeSignalTimelineSection() {
   return (
-    <section className="relative overflow-hidden bg-black py-24 text-white">
+    <section className="relative overflow-hidden bg-black pt-10 pb-16 text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.16),_transparent_35%)]" />
 
       <div className="relative mx-auto max-w-6xl px-6">
@@ -158,3 +158,5 @@ export default function LifeSignalTimelineSection() {
     </section>
   );
 }
+
+

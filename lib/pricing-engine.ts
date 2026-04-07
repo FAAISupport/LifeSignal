@@ -11,3 +11,4 @@ export function calculateChurchPricing(memberCount: number, features: string[]) 
     annual: Math.round(base * multiplier * 12)
   };
 }
+

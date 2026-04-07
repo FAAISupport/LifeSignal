@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const RESPONDED_STATUSES = ["responded", "help_requested", "resolved"];
 
@@ -13,7 +13,7 @@ export type CheckinRecord = {
 };
 
 export async function listDueCheckins(nowIso: string) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
 
   const { data, error } = await admin
     .from("checkins")
@@ -31,7 +31,7 @@ export async function listDueCheckins(nowIso: string) {
 }
 
 export async function markCheckinSent(checkinId: string, sentAtIso: string) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
 
   const { data, error } = await admin
     .from("checkins")
@@ -49,7 +49,7 @@ export async function markCheckinSent(checkinId: string, sentAtIso: string) {
 }
 
 export async function markCheckinMissed(checkinId: string) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
 
   const { data, error } = await admin
     .from("checkins")
@@ -70,7 +70,7 @@ export async function respondToCheckin(input: {
   checkinId: string;
   responseText: string;
 }) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
   const normalizedResponse = input.responseText.trim();
   const lower = normalizedResponse.toLowerCase();
   const helpRequested = lower.includes("help") || lower.includes("sos") || lower.includes("911");
@@ -119,3 +119,4 @@ export async function respondToCheckin(input: {
     alreadyProcessed: false,
   };
 }
+

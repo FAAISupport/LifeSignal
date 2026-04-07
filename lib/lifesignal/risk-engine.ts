@@ -1,7 +1,7 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function refreshRiskSnapshotsForOrg(orgId: string) {
-  const admin = createAdminClient();
+  const admin = createSupabaseAdminClient();
 
   const { data: members, error: membersError } = await admin
     .from("monitored_members")
@@ -51,3 +51,4 @@ export async function refreshRiskSnapshotsForOrg(orgId: string) {
 
   return { created };
 }
+

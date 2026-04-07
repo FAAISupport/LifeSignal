@@ -103,3 +103,4 @@ export async function generateRecommendations(input: RecommendationInput): Promi
     return fallback;
   }
 }
+

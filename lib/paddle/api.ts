@@ -40,3 +40,4 @@ export async function paddleFetch<T = unknown>(
 export const paddleApiFetch = paddleFetch;
 
 export { getPaddleApiBaseUrl };
+

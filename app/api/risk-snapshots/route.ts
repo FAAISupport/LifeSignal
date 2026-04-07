@@ -24,3 +24,4 @@ export async function GET(request: Request) {
   return ok({ snapshots: data ?? [] });
 }
 
+

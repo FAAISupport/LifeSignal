@@ -329,3 +329,4 @@ export const FEATURE_CATALOG = featureCatalog;
 export const FEATURE_CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
   featureCategories.map((category) => [category, category])
 );
+

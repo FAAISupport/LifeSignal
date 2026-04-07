@@ -8,3 +8,4 @@ export async function GET(request: Request) {
   return ok({ service: "cron", healthy: true, at: new Date().toISOString() });
 }
 
+

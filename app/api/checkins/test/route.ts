@@ -9,7 +9,7 @@ import {
 function isAuthorized(req: NextRequest) {
   const secret = process.env.CRON_SECRET || "";
   const auth = req.headers.get("authorization") || "";
-  return secret && auth === Bearer ;
+  return Boolean(secret) && auth === `Bearer ${secret}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -19,28 +19,29 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const person = typeof body.person === "string" && body.person.trim() ? body.person.trim() : "Judd";
+    const person =
+      typeof body.person === "string" && body.person.trim()
+        ? body.person.trim()
+        : "Judd";
 
     const client = getTwilioClient();
     const from = getTwilioFromNumber();
     const to = getTestToNumber();
-    const baseUrl = getBaseUrl();
+    const baseUrl = getBaseUrl().replace(/\/$/, "");
 
     const sms = await client.messages.create({
       from,
       to,
-      body:
-        LifeSignal test check-in for :  +
-        Reply YES if you are okay, or HELP if you need assistance.,
-      statusCallback: ${baseUrl}/api/twilio/status/sms,
+      body: `LifeSignal test check-in for ${person}. Reply YES if you are okay, or HELP if you need assistance.`,
+      statusCallback: `${baseUrl}/api/twilio/status/sms`,
     });
 
     const call = await client.calls.create({
       from,
       to,
-      url: ${baseUrl}/api/twilio/voice/checkin?person=,
+      url: `${baseUrl}/api/twilio/voice/checkin?person=${encodeURIComponent(person)}`,
       method: "POST",
-      statusCallback: ${baseUrl}/api/twilio/status/voice,
+      statusCallback: `${baseUrl}/api/twilio/status/voice`,
       statusCallbackMethod: "POST",
     });
 

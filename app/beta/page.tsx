@@ -89,7 +89,7 @@ export default async function BetaPage({ searchParams }: BetaPageProps) {
     <SitePageShell>
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.20),transparent_35%),radial-gradient(circle_at_85%_15%,rgba(167,139,250,0.16),transparent_30%)]" />
-        <div className="relative mx-auto max-w-7xl px-6 py-20 sm:px-8 lg:px-10 lg:py-24">
+        <div className="relative mx-auto max-w-7xl px-6 py-20 sm:px-8 lg:px-10 lg:pt-10 pb-16">
           <div className="grid gap-12 lg:grid-cols-[1.05fr_.95fr]">
             <div>
               <p className="text-lg font-semibold uppercase tracking-[0.24em] text-sky-300">
@@ -523,4 +523,7 @@ export default async function BetaPage({ searchParams }: BetaPageProps) {
     </SitePageShell>
   );
 }
+
+
+
 
