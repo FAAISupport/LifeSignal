@@ -1,0 +1,24 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/materialize-checkins",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/run-checkins",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/process-overdue-checkins",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/run-escalations",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/daily-maintenance",
+      "schedule": "15 5 * * *"
+    }
+  ]
+}

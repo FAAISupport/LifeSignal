@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --card: rgba(2, 6, 23, 0.82);
+  --card-foreground: #f8fafc;
+  --muted: #94a3b8;
+  --border: rgba(34, 211, 238, 0.14);
+  --primary: #22d3ee;
+  --primary-foreground: #041014;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at top, rgba(34, 211, 238, 0.16), transparent 34%),
+    linear-gradient(180deg, #020617 0%, #03131a 45%, #020617 100%);
+  background-attachment: fixed;
+}
+
+a {
+  transition: color 0.2s ease, opacity 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.25);
+  color: #ffffff;
+}
+
+/* Optional shared utility feel across sections */
+.site-surface {
+  background: rgba(2, 6, 23, 0.78);
+  border: 1px solid rgba(34, 211, 238, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.site-glow {
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.08);
+}
+
+
+/* ===== LifeSignal Global Theme Upgrade (PREMIUM) ===== */
+
+:root {
+  --ls-bg: #020617;
+  --ls-bg-2: #03131a;
+  --ls-panel: rgba(2, 6, 23, 0.72);
+  --ls-panel-strong: rgba(2, 6, 23, 0.88);
+  --ls-text: #f8fafc;
+  --ls-text-soft: #cbd5e1;
+  --ls-muted: #94a3b8;
+  --ls-cyan: #22d3ee;
+  --ls-cyan-2: #67e8f9;
+  --ls-border: rgba(34, 211, 238, 0.14);
+  --ls-border-strong: rgba(34, 211, 238, 0.28);
+  --ls-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  --ls-shadow-glow: 0 0 40px rgba(34, 211, 238, 0.08);
+  --ls-radius: 1.25rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--ls-text);
+  background:
+    radial-gradient(circle at top, rgba(34, 211, 238, 0.16), transparent 34%),
+    linear-gradient(180deg, var(--ls-bg) 0%, var(--ls-bg-2) 45%, var(--ls-bg) 100%);
+  background-attachment: fixed;
+}
+
+/* Typography polish */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+}
+
+p {
+  color: var(--ls-text-soft);
+}
+
+/* Selection */
+::selection {
+  background: rgba(34, 211, 238, 0.24);
+  color: white;
+}
+
+/* Links */
+a {
+  transition: color 0.2s ease, opacity 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+a:hover {
+  color: var(--ls-cyan);
+}
+
+/* Header / nav */
+header,
+nav,
+.site-header,
+.navbar,
+[data-site-header] {
+  background: rgba(2, 6, 23, 0.74) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--ls-border) !important;
+  box-shadow: var(--ls-shadow-glow);
+}
+
+/* Panels and cards */
+.card,
+.site-card,
+.site-panel,
+[data-card],
+.rounded-2xl,
+.rounded-3xl {
+  border-color: var(--ls-border);
+}
+
+main .rounded-2xl,
+main .rounded-3xl,
+.card,
+.site-card,
+.site-panel,
+[data-card] {
+  background: var(--ls-panel);
+  box-shadow: var(--ls-shadow), var(--ls-shadow-glow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Buttons */
+button,
+.button,
+.btn {
+  border-radius: 1rem;
+  transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+button:hover,
+.button:hover,
+.btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+/* Primary-style buttons */
+button:not(.unstyled),
+.button,
+.btn {
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.12);
+}
+
+/* Inputs */
+input,
+textarea,
+select {
+  background: rgba(2, 6, 23, 0.72) !important;
+  color: var(--ls-text) !important;
+  border: 1px solid var(--ls-border) !important;
+  border-radius: 1rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ls-muted) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--ls-border-strong) !important;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.10);
+}
+
+/* Generic borders */
+.border {
+  border-color: var(--ls-border) !important;
+}
+
+/* Section rhythm */
+section {
+  position: relative;
+}
+
+section + section {
+  border-top: 1px solid rgba(34, 211, 238, 0.04);
+}
+
+/* Utility classes you can reuse anywhere */
+.site-surface {
+  background: var(--ls-panel);
+  border: 1px solid var(--ls-border);
+  box-shadow: var(--ls-shadow), var(--ls-shadow-glow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.site-surface-strong {
+  background: var(--ls-panel-strong);
+  border: 1px solid var(--ls-border-strong);
+  box-shadow: var(--ls-shadow), var(--ls-shadow-glow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.site-accent {
+  color: var(--ls-cyan);
+}
+
+.site-muted {
+  color: var(--ls-text-soft);
+}
+
+.site-hero-glow::before {
+  content: """";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(34, 211, 238, 0.14), transparent 40%);
+  pointer-events: none;
+}
