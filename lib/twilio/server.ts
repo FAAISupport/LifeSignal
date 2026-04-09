@@ -18,4 +18,3 @@ export function getTwilioFromNumber() {
   }
   return fromNumber;
 }
-

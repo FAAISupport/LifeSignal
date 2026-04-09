@@ -1,13 +1,12 @@
 {
   "crons": [
-    { "path": "/api/cron/materialize-checkins", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/process-checkins", "schedule": "* * * * *" },
-    { "path": "/api/cron/process-escalations", "schedule": "* * * * *" },
-    { "path": "/api/cron/risk-thresholds", "schedule": "*/10 * * * *" },
-    { "path": "/api/cron/stale-incidents", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/analytics-rollup", "schedule": "7 * * * *" },
-    { "path": "/api/cron/risk-snapshots", "schedule": "12 * * * *" },
-    { "path": "/api/cron/leaderboards", "schedule": "20 * * * *" },
-    { "path": "/api/cron/weekly-reports", "schedule": "0 13 * * 1" }
+    {
+      "path": "/api/cron/checkins/run",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/escalations/run",
+      "schedule": "*/2 * * * *"
+    }
   ]
 }

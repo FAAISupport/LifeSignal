@@ -258,4 +258,3 @@ export async function acknowledgeLatestIncident(input: {
 
   return latestIncident;
 }
-
