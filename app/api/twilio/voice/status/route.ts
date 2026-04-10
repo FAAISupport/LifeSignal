@@ -227,7 +227,7 @@ async function handleRecipientDigits(args: {
       },
     });
 
-    return xml(<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">Thank you. Your LifeSignal check-in has been recorded.</Say></Response>);
+    return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
   }
 
   if (digits === "2") {
@@ -271,7 +271,7 @@ async function handleRecipientDigits(args: {
       },
     });
 
-    return xml(<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">Your request for assistance has been recorded and LifeSignal is notifying your contacts now.</Say></Response>);
+    return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
   }
 
   return null;
@@ -312,7 +312,7 @@ async function acknowledgeIncidentFromVoiceDigits(args: {
   const incident = incidentQuery.data as CareIncidentRow | null;
 
   if (!incident) {
-    return xml(<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">No open incident was found for acknowledgment.</Say></Response>);
+    return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
   }
 
   const updateIncident = await supabase
@@ -372,7 +372,7 @@ async function acknowledgeIncidentFromVoiceDigits(args: {
     throw checkinUpdate.error;
   }
 
-  return xml(<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">Your acknowledgment has been recorded.</Say></Response>);
+  return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
 }
 
 export async function POST(req: NextRequest) {
@@ -417,11 +417,11 @@ export async function POST(req: NextRequest) {
 
     if (!event) {
       if (digits === "1") {
-        return xml(<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">Thank you. Your response has been recorded.</Say></Response>);
+        return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
       }
 
       if (digits === "2") {
-        return xml(<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">Your response has been recorded.</Say></Response>);
+        return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
       }
 
       return NextResponse.json({
@@ -532,3 +532,12 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+
+
+
+
+
+
+
+

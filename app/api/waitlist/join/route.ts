@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getTwilioClient, getTwilioFromNumber } from "@/lib/twilio/client";
+import { getTwilioClient } from "@/lib/twilio/client";
 
 const WAITLIST_TABLE = process.env.WAITLIST_TABLE_NAME || "waitlist_entries";
 
@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
       try {
         const client = getTwilioClient();
         const sms = await client.messages.create({
-          from: getTwilioFromNumber(),
+          from: process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_FROM_NUMBER || "",
           to: phone,
           body:
             "LifeSignal: You are enrolled in safety check-ins and alerts. " +
@@ -295,3 +295,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+
+

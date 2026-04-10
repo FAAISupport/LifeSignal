@@ -45,20 +45,20 @@ function getSupabaseAdmin() {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRole) {
-    throw new Error(""Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY"");
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   }
 
   return createClient(url, serviceRole);
 }
 
 function getBearerToken(req: NextRequest) {
-  const auth = req.headers.get(""authorization"") || """";
+  const auth = req.headers.get("authorization") || "";
   const match = auth.match(/^Bearer\s+(.+)$/i);
-  return match?.[1] || """";
+  return match?.[1] || "";
 }
 
 function isVercelCronRequest(req: NextRequest) {
-  const vercelCronHeader = req.headers.get(""x-vercel-cron"");
+  const vercelCronHeader = req.headers.get("x-vercel-cron");
   return Boolean(vercelCronHeader);
 }
 
@@ -77,10 +77,10 @@ function assertAuthorized(req: NextRequest) {
   }
 
   if (!secret && !isVercelCronRequest(req)) {
-    throw new Error(""Missing CRON_SECRET"");
+    throw new Error("Missing CRON_SECRET");
   }
 
-  throw new Error(""Unauthorized"");
+  throw new Error("Unauthorized");
 }
 
 function getStepDelayMinutes(contact: EscalationContact) {
@@ -100,19 +100,19 @@ function getChannels(contact: EscalationContact) {
 
 function buildEscalationMessage(recipient: CareRecipient, contact: EscalationContact, incident: CareIncident) {
   const base = [
-    ""LifeSignal Alert:"",
-    recipient.full_name + "" has not responded to a scheduled safety check-in."",
-    ""Recipient phone: "" + recipient.phone + ""."",
-    ""Incident ID: "" + incident.id + ""."",
+    "LifeSignal Alert:",
+    recipient.full_name + " has not responded to a scheduled safety check-in.",
+    "Recipient phone: " + recipient.phone + ".",
+    "Incident ID: " + incident.id + ".",
   ];
 
   if (contact.can_acknowledge) {
-    base.push(""Reply ACK "" + incident.id + "" to acknowledge."");
+    base.push("Reply ACK " + incident.id + " to acknowledge.");
   }
 
-  base.push(""Reply HELP for support."");
+  base.push("Reply HELP for support.");
 
-  return base.join("" "");
+  return base.join(" ");
 }
 
 async function insertEvent(
@@ -137,12 +137,12 @@ async function insertEvent(
   };
 
   if (values.incident_id) payload.incident_id = values.incident_id;
-  if (typeof values.step_number === ""number"") payload.step_number = values.step_number;
+  if (typeof values.step_number === "number") payload.step_number = values.step_number;
   if (values.channel) payload.channel = values.channel;
 
-  const { error } = await supabase.from(""care_events"").insert(payload);
+  const { error } = await supabase.from("care_events").insert(payload);
   if (error) {
-    console.error(""[cron:escalations:event:error]"", error);
+    console.error("[cron:escalations:event:error]", error);
   }
 }
 
@@ -152,10 +152,10 @@ async function alreadySentStep(
   contactId: string
 ) {
   const { data, error } = await supabase
-    .from(""care_events"")
-    .select(""id, metadata"")
-    .eq(""type"", ""escalation_step_sent"")
-    .eq(""incident_id"", incidentId);
+    .from("care_events")
+    .select("id, metadata")
+    .eq("type", "escalation_step_sent")
+    .eq("incident_id", incidentId);
 
   if (error) {
     throw error;
@@ -177,10 +177,10 @@ export async function POST(req: NextRequest) {
     const nowIso = now.toISOString();
 
     const incidentsQuery = await supabase
-      .from(""care_incidents"")
-      .select(""*"")
-      .eq(""status"", ""open"")
-      .order(""started_at"", { ascending: true })
+      .from("care_incidents")
+      .select("*")
+      .eq("status", "open")
+      .order("started_at", { ascending: true })
       .limit(50);
 
     if (incidentsQuery.error) {
@@ -197,9 +197,9 @@ export async function POST(req: NextRequest) {
 
     for (const incident of incidents) {
       const checkinQuery = await supabase
-        .from(""care_checkins"")
-        .select(""id, recipient_id, status, escalation_started_at, metadata"")
-        .eq(""id"", incident.check_in_id)
+        .from("care_checkins")
+        .select("id, recipient_id, status, escalation_started_at, metadata")
+        .eq("id", incident.check_in_id)
         .maybeSingle();
 
       if (checkinQuery.error) {
@@ -208,19 +208,19 @@ export async function POST(req: NextRequest) {
 
       const checkin = checkinQuery.data as CareCheckin | null;
 
-      if (!checkin || checkin.status !== ""escalating"") {
+      if (!checkin || checkin.status !== "escalating") {
         skipped += 1;
         processed.push({
           incidentId: incident.id,
-          action: ""skipped_checkin_not_escalating"",
+          action: "skipped_checkin_not_escalating",
         });
         continue;
       }
 
       const recipientQuery = await supabase
-        .from(""care_recipients"")
-        .select(""id, full_name, phone"")
-        .eq(""id"", incident.recipient_id)
+        .from("care_recipients")
+        .select("id, full_name, phone")
+        .eq("id", incident.recipient_id)
         .maybeSingle();
 
       if (recipientQuery.error) {
@@ -233,17 +233,17 @@ export async function POST(req: NextRequest) {
         skipped += 1;
         processed.push({
           incidentId: incident.id,
-          action: ""skipped_missing_recipient"",
+          action: "skipped_missing_recipient",
         });
         continue;
       }
 
       const contactsQuery = await supabase
-        .from(""care_escalation_contacts"")
-        .select(""*"")
-        .eq(""recipient_id"", incident.recipient_id)
-        .eq(""is_active"", true)
-        .order(""priority"", { ascending: true });
+        .from("care_escalation_contacts")
+        .select("*")
+        .eq("recipient_id", incident.recipient_id)
+        .eq("is_active", true)
+        .order("priority", { ascending: true });
 
       if (contactsQuery.error) {
         throw contactsQuery.error;
@@ -255,7 +255,7 @@ export async function POST(req: NextRequest) {
         skipped += 1;
         processed.push({
           incidentId: incident.id,
-          action: ""skipped_no_contacts"",
+          action: "skipped_no_contacts",
         });
         continue;
       }
@@ -282,8 +282,8 @@ export async function POST(req: NextRequest) {
         const channels = getChannels(contact);
         const body = buildEscalationMessage(recipient, contact, incident);
 
-        let channelUsed = """";
-        let providerSid = """";
+        let channelUsed = "";
+        let providerSid = "";
 
         if (channels.sms) {
           const sms = await sendLifeSignalSms({
@@ -291,7 +291,7 @@ export async function POST(req: NextRequest) {
             body,
           });
 
-          channelUsed = ""escalation_sms"";
+          channelUsed = "escalation_sms";
           providerSid = sms.sid;
           escalationMessagesSent += 1;
         } else if (channels.voice) {
@@ -299,7 +299,7 @@ export async function POST(req: NextRequest) {
             to: contact.phone,
           });
 
-          channelUsed = ""escalation_voice"";
+          channelUsed = "escalation_voice";
           providerSid = call.sid;
           escalationCallsPlaced += 1;
         } else {
@@ -307,7 +307,7 @@ export async function POST(req: NextRequest) {
           processed.push({
             incidentId: incident.id,
             contactId: contact.id,
-            action: ""skipped_contact_no_channels"",
+            action: "skipped_contact_no_channels",
           });
           continue;
         }
@@ -323,7 +323,7 @@ export async function POST(req: NextRequest) {
         };
 
         const updateIncident = await supabase
-          .from(""care_incidents"")
+          .from("care_incidents")
           .update({
             steps: [...currentSteps, newStep],
             updated_at: nowIso,
@@ -335,14 +335,14 @@ export async function POST(req: NextRequest) {
               last_provider_sid: providerSid,
             },
           })
-          .eq(""id"", incident.id);
+          .eq("id", incident.id);
 
         if (updateIncident.error) {
           throw updateIncident.error;
         }
 
         await insertEvent(supabase, {
-          type: ""escalation_step_sent"",
+          type: "escalation_step_sent",
           check_in_id: incident.check_in_id,
           recipient_id: incident.recipient_id,
           incident_id: incident.id,
@@ -368,7 +368,7 @@ export async function POST(req: NextRequest) {
           recipientId: incident.recipient_id,
           contactId: contact.id,
           stepNumber,
-          action: channelUsed === ""escalation_voice"" ? ""escalation_call_placed"" : ""escalation_sms_sent"",
+          action: channelUsed === "escalation_voice" ? "escalation_call_placed" : "escalation_sms_sent",
           providerSid,
         });
 
@@ -378,7 +378,7 @@ export async function POST(req: NextRequest) {
       if (!sentThisRound) {
         processed.push({
           incidentId: incident.id,
-          action: ""no_step_due_yet_or_all_steps_sent"",
+          action: "no_step_due_yet_or_all_steps_sent",
         });
       }
     }
@@ -397,10 +397,10 @@ export async function POST(req: NextRequest) {
       processed,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : ""Unknown error"";
-    const status = message === ""Unauthorized"" ? 401 : 500;
+    const message = error instanceof Error ? error.message : "Unknown error";
+    const status = message === "Unauthorized" ? 401 : 500;
 
-    console.error(""[cron:escalations:run:error]"", error);
+    console.error("[cron:escalations:run:error]", error);
 
     return NextResponse.json(
       {
@@ -411,4 +411,22 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

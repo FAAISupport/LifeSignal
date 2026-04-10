@@ -109,17 +109,7 @@ function buildRecipientTwiml(args: {
 }) {
   const { actionUrl, recipientName } = args;
 
-  return <?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather input="dtmf" numDigits="1" action="" method="POST" timeout="6">
-    <Say voice="alice">This is LifeSignal calling for .</Say>
-    <Pause length="1" />
-    <Say voice="alice">Press 1 if you are okay.</Say>
-    <Pause length="1" />
-    <Say voice="alice">Press 2 if you need assistance.</Say>
-  </Gather>
-  <Say voice="alice">We did not receive a response. LifeSignal will continue your safety workflow.</Say>
-</Response>;
+  return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
 }
 
 function buildEscalationTwiml(args: {
@@ -128,17 +118,7 @@ function buildEscalationTwiml(args: {
 }) {
   const { actionUrl, recipientName } = args;
 
-  return <?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather input="dtmf" numDigits="1" action="" method="POST" timeout="6">
-    <Say voice="alice">This is a LifeSignal escalation alert.</Say>
-    <Pause length="1" />
-    <Say voice="alice"> has not responded to a scheduled safety check-in.</Say>
-    <Pause length="1" />
-    <Say voice="alice">Press 2 to acknowledge this incident.</Say>
-  </Gather>
-  <Say voice="alice">No acknowledgment was received. LifeSignal may continue the escalation process.</Say>
-</Response>;
+  return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
 }
 
 function buildGenericTwiml(args: {
@@ -146,17 +126,7 @@ function buildGenericTwiml(args: {
 }) {
   const { actionUrl } = args;
 
-  return <?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather input="dtmf" numDigits="1" action="" method="POST" timeout="6">
-    <Say voice="alice">This is LifeSignal.</Say>
-    <Pause length="1" />
-    <Say voice="alice">Press 1 to confirm you are okay.</Say>
-    <Pause length="1" />
-    <Say voice="alice">Press 2 if you need assistance or are acknowledging an escalation.</Say>
-  </Gather>
-  <Say voice="alice">We did not receive a response. Please contact LifeSignal support if needed.</Say>
-</Response>;
+  return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
 }
 
 export async function POST(req: NextRequest) {
@@ -193,7 +163,7 @@ export async function POST(req: NextRequest) {
       : "/api/twilio/voice/status";
 
     if (!event) {
-      return xml(buildGenericTwiml({ actionUrl: baseActionUrl }));
+      return buildGenericTwiml({ actionUrl: baseActionUrl });
     }
 
     const recipientName = await findRecipientName(supabase, event.recipient_id);
@@ -201,23 +171,23 @@ export async function POST(req: NextRequest) {
 
     if (isEscalation) {
       const actionUrl = baseActionUrl + "?mode=escalation";
-      return xml(
-        buildEscalationTwiml({
+      return buildEscalationTwiml({
           actionUrl,
           recipientName,
-        })
-      );
+        });
     }
 
     const actionUrl = baseActionUrl + "?mode=recipient";
-    return xml(
-      buildRecipientTwiml({
+    return buildRecipientTwiml({
         actionUrl,
         recipientName,
-      })
-    );
+      });
   } catch (error) {
     console.error("[twilio:voice:incoming:error]", error);
-    return xml(<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">LifeSignal encountered an error.</Say></Response>);
+    return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
   }
 }
+
+
+
+

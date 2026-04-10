@@ -12,10 +12,7 @@ function xml(body: string) {
 }
 
 function say(message: string) {
-  return <?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice"></Say>
-</Response>;
+  return `return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`;
 }
 
 export async function POST(req: NextRequest) {
@@ -64,3 +61,4 @@ export async function POST(req: NextRequest) {
     return xml(say("We could not process your response right now. Goodbye."));
   }
 }
+

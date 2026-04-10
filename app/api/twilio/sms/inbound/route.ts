@@ -53,7 +53,7 @@ function normalize(input: string) {
 }
 
 function twiml(message: string) {
-  return <?xml version="1.0" encoding="UTF-8"?><Response><Message></Message></Response>;
+  return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
 }
 
 function isKeywordMatch(input: string, keywords: string[]) {
@@ -365,7 +365,7 @@ async function acknowledgeIncidentFromContact(args: {
     }
   }
 
-  return twiml(LifeSignal incident  acknowledged by .);
+  return twiml("LifeSignal incident acknowledged.");
 }
 
 async function handleRecipientMessage(args: {
@@ -574,7 +574,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return xml(twiml("You have been unsubscribed from LifeSignal messages. Reply START to re-subscribe."));
+      return twiml("You have been unsubscribed from LifeSignal messages. Reply START to re-subscribe.");
     }
 
     if (systemKeyword === "start") {
@@ -592,14 +592,14 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return xml(twiml("LifeSignal messaging has been re-enabled. Reply YES when prompted to confirm your status."));
+      return twiml("LifeSignal messaging has been re-enabled. Reply YES when prompted to confirm your status.");
     }
 
     if (systemKeyword === "help") {
       const latestConsentStatus = await getLatestConsentStatus(supabase, phone);
 
       if (latestConsentStatus === "opted_out") {
-        return xml(twiml("LifeSignal messaging is disabled for this number. Reply START to re-enable."));
+        return twiml("LifeSignal messaging is disabled for this number. Reply START to re-enable.");
       }
 
       await upsertConsentLog({
@@ -616,12 +616,12 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return xml(twiml("LifeSignal support: reply YES to confirm you are okay, ACK INCIDENT_ID to acknowledge an incident, or email support@lifesignal.app."));
+      return twiml("LifeSignal support: reply YES to confirm you are okay, ACK INCIDENT_ID to acknowledge an incident, or email support@lifesignal.app.");
     }
 
     const latestConsentStatus = await getLatestConsentStatus(supabase, phone);
     if (latestConsentStatus === "opted_out") {
-      return xml(twiml("LifeSignal messaging is currently disabled for this number. Reply START to re-enable."));
+      return twiml("LifeSignal messaging is currently disabled for this number. Reply START to re-enable.");
     }
 
     const ackResponse = await acknowledgeIncidentFromContact({
@@ -632,7 +632,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (ackResponse) {
-      return xml(ackResponse);
+      return ackResponse;
     }
 
     const response = await handleRecipientMessage({
@@ -642,9 +642,19 @@ export async function POST(req: NextRequest) {
       nowIso,
     });
 
-    return xml(response);
+    return response;
   } catch (error) {
     console.error("[twilio:sms:inbound:error]", error);
-    return xml(<?xml version="1.0" encoding="UTF-8"?><Response></Response>);
+    return new Response(`return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
   }
 }
+
+
+
+
+
+
+
+
+
+

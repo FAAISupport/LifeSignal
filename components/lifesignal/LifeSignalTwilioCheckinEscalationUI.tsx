@@ -214,7 +214,7 @@ function TimelineCard({ events }: { events: TimelineEvent[] }) {
             <CardTitle>Event Timeline</CardTitle>
             <CardDescription>Full audit trail for attempts, retries, responses, and escalations.</CardDescription>
           </div>
-          <Badge variant="outline" className="rounded-full border-rose-200 bg-rose-50 text-rose-700">
+          <Badge variant="secondary" className="rounded-full border-rose-200 bg-rose-50 text-rose-700">
             Live Audit Feed
           </Badge>
         </div>
@@ -461,7 +461,7 @@ export default function LifeSignalTwilioCheckinEscalationUI() {
                   </div>
                   <div className="space-y-2">
                     <Label>Primary channel</Label>
-                    <Select value={workflow.primaryChannel} onValueChange={(value: Channel) => updateWorkflow("primaryChannel", value)}>
+                    <Select value={workflow.primaryChannel} onValueChange={(value) => value && updateWorkflow("primaryChannel", value as Channel)}>
                       <SelectTrigger><SelectValue placeholder="Choose channel" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="sms">SMS</SelectItem>
@@ -471,7 +471,7 @@ export default function LifeSignalTwilioCheckinEscalationUI() {
                   </div>
                   <div className="space-y-2">
                     <Label>Fallback channel</Label>
-                    <Select value={workflow.fallbackChannel} onValueChange={(value: Channel) => updateWorkflow("fallbackChannel", value)}>
+                    <Select value={workflow.fallbackChannel} onValueChange={(value) => value && updateWorkflow("fallbackChannel", value as Channel)}>
                       <SelectTrigger><SelectValue placeholder="Choose fallback" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="sms">SMS</SelectItem>
@@ -509,7 +509,7 @@ export default function LifeSignalTwilioCheckinEscalationUI() {
                   <Button className="rounded-2xl" onClick={handleSaveWorkflow} disabled={isSavingWorkflow}>
                     {isSavingWorkflow ? "Saving..." : "Save Workflow"}
                   </Button>
-                  <Button variant="outline" className="rounded-2xl" onClick={handlePreviewPayload} disabled={isPreviewingPayload}>
+                  <Button variant="secondary" className="rounded-2xl" onClick={handlePreviewPayload} disabled={isPreviewingPayload}>
                     {isPreviewingPayload ? "Building Preview..." : "Preview Twilio Payload"}
                   </Button>
                 </div>
@@ -545,7 +545,7 @@ export default function LifeSignalTwilioCheckinEscalationUI() {
                           <p className="font-medium text-slate-900">{attempt.title}</p>
                           <p className="text-sm text-slate-500">{formatChannel(attempt.channel)} • {attempt.description}</p>
                         </div>
-                        <Badge variant="outline" className="rounded-full">{attempt.offset}</Badge>
+                        <Badge variant="secondary" className="rounded-full">{attempt.offset}</Badge>
                       </div>
                     ))}
                   </TabsContent>
@@ -618,7 +618,7 @@ export default function LifeSignalTwilioCheckinEscalationUI() {
                   <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-xs uppercase tracking-wide text-slate-400">Dispatch Controls</p>
-                      <Select value={selectedRisk} onValueChange={setSelectedRisk}>
+                      <Select value={selectedRisk} onValueChange={(value) => value && setSelectedRisk(value)}>
                         <SelectTrigger className="h-8 w-[140px] border-white/10 bg-white/5 text-white">
                           <SelectValue placeholder="Risk level" />
                         </SelectTrigger>
@@ -689,3 +689,9 @@ export default function LifeSignalTwilioCheckinEscalationUI() {
     </div>
   );
 }
+
+
+
+
+
+

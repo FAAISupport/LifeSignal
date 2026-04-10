@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendLifeSignalSms } from "@/lib/twilio/client";
+import { placeLifeSignalCall } from "@/lib/twilio/client";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const phone = String(body.phone || "").trim();
-    const message = String(body.message || "").trim();
 
     if (!phone) {
       return NextResponse.json({ ok: false, error: "Missing phone" }, { status: 400 });
     }
 
-    if (!message) {
-      return NextResponse.json({ ok: false, error: "Missing message" }, { status: 400 });
-    }
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
 
-    const result = await sendLifeSignalSms({
+    const result = await placeLifeSignalCall({
       to: phone,
-      body: message,
+      url: `${appUrl}/api/twilio/voice/checkin`,
+      statusCallback: `${appUrl}/api/twilio/voice/status`,
     });
 
     return NextResponse.json({

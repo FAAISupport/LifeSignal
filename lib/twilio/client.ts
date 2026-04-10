@@ -1,81 +1,97 @@
 import twilio from "twilio";
 
-function requireEnv(name: string) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error("Missing required environment variable: " + name);
-  }
-  return value;
-}
-
-export function getTwilioClient() {
-  return twilio(
-    requireEnv("TWILIO_ACCOUNT_SID"),
-    requireEnv("TWILIO_AUTH_TOKEN"),
-  );
-}
-
-export function getTwilioMessagingConfig() {
-  return {
-    messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
-    phoneNumber: process.env.TWILIO_PHONE_NUMBER || "",
-    smsStatusCallbackUrl:
-      process.env.TWILIO_STATUS_CALLBACK_URL ||
-      ((process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "") +
-        "/api/twilio/sms/status"),
-    voiceStatusCallbackUrl:
-      process.env.TWILIO_VOICE_STATUS_CALLBACK_URL ||
-      ((process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "") +
-        "/api/twilio/voice/status"),
-  };
-}
-
-export async function sendLifeSignalSms(args: {
+type SendLifeSignalSmsArgs = {
   to: string;
   body: string;
+  from?: string;
+  mediaUrl?: string[];
   statusCallback?: string;
-}) {
-  const client = getTwilioClient();
-  const config = getTwilioMessagingConfig();
+};
 
-  const payload: Record<string, string> = {
-    to: args.to,
-    body: args.body,
-    statusCallback: args.statusCallback || config.smsStatusCallbackUrl,
-  };
+type PlaceLifeSignalCallArgs = {
+  to: string;
+  twiml?: string;
+  url?: string;
+  from?: string;
+  statusCallback?: string;
+  machineDetection?: "Enable" | "DetectMessageEnd";
+};
 
-  if (config.messagingServiceSid) {
-    payload.messagingServiceSid = config.messagingServiceSid;
-  } else if (config.phoneNumber) {
-    payload.from = config.phoneNumber;
-  } else {
-    throw new Error("Missing TWILIO_MESSAGING_SERVICE_SID or TWILIO_PHONE_NUMBER");
+export function getTwilioClient() {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+  if (!accountSid || !authToken) {
+    throw new Error("Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN");
   }
+
+  return twilio(accountSid, authToken);
+}
+
+function getSmsFromNumber(explicitFrom?: string) {
+  const from =
+    explicitFrom ||
+    process.env.TWILIO_SMS_FROM ||
+    process.env.TWILIO_PHONE_NUMBER;
+
+  if (!from) {
+    throw new Error("Missing TWILIO_SMS_FROM or TWILIO_PHONE_NUMBER");
+  }
+
+  return from;
+}
+
+function getVoiceFromNumber(explicitFrom?: string) {
+  const from =
+    explicitFrom ||
+    process.env.TWILIO_VOICE_FROM ||
+    process.env.TWILIO_PHONE_NUMBER;
+
+  if (!from) {
+    throw new Error("Missing TWILIO_VOICE_FROM or TWILIO_PHONE_NUMBER");
+  }
+
+  return from;
+}
+
+export async function sendLifeSignalSms(args: SendLifeSignalSmsArgs) {
+  const client = getTwilioClient();
+
+  const payload = {
+    to: args.to,
+    from: getSmsFromNumber(args.from),
+    body: args.body,
+    ...(args.mediaUrl && args.mediaUrl.length > 0 ? { mediaUrl: args.mediaUrl } : {}),
+    ...(args.statusCallback ? { statusCallback: args.statusCallback } : {}),
+  };
 
   return client.messages.create(payload);
 }
 
-export async function placeLifeSignalCall(args: {
-  to: string;
-  twimlUrl?: string;
-  statusCallback?: string;
-}) {
+export async function placeLifeSignalCall(args: PlaceLifeSignalCallArgs) {
   const client = getTwilioClient();
-  const config = getTwilioMessagingConfig();
 
-  if (!config.phoneNumber) {
-    throw new Error("Missing TWILIO_PHONE_NUMBER for voice calls");
+  if (!args.twiml && !args.url) {
+    throw new Error("placeLifeSignalCall requires either twiml or url");
   }
 
-  const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
-  const url = args.twimlUrl || appUrl + "/api/twilio/voice/incoming";
-
-  return client.calls.create({
+  const payload = {
     to: args.to,
-    from: config.phoneNumber,
-    url,
-    statusCallback: args.statusCallback || config.voiceStatusCallbackUrl,
-    statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
-    statusCallbackMethod: "POST",
-  });
+    from: getVoiceFromNumber(args.from),
+    ...(args.twiml ? { twiml: args.twiml } : {}),
+    ...(args.url ? { url: args.url } : {}),
+    ...(args.statusCallback ? { statusCallback: args.statusCallback } : {}),
+    ...(args.machineDetection ? { machineDetection: args.machineDetection } : {}),
+  };
+
+  return client.calls.create(payload);
+}
+
+export function getTwilioPublicConfig() {
+  return {
+    smsFrom: process.env.TWILIO_SMS_FROM || process.env.TWILIO_PHONE_NUMBER || null,
+    voiceFrom: process.env.TWILIO_VOICE_FROM || process.env.TWILIO_PHONE_NUMBER || null,
+    hasAccountSid: Boolean(process.env.TWILIO_ACCOUNT_SID),
+    hasAuthToken: Boolean(process.env.TWILIO_AUTH_TOKEN),
+  };
 }
