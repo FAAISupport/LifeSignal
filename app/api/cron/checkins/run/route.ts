@@ -46,7 +46,7 @@ function getSupabaseAdmin() {
 
 function getBearerToken(req: NextRequest) {
   const auth = req.headers.get("authorization") || "";
-  const match = auth.match(/^Bearer\\s+(.+)$/i);
+  const match = auth.match(/^Bearer\s+(.+)$/i);
   return match?.[1] || "";
 }
 
@@ -106,9 +106,7 @@ function shouldUseVoice(checkin: CareCheckin, recipient: CareRecipient) {
   const checkinChannels = safeArray(checkin.channels);
   const preferredChannels = safeArray(recipient.preferred_channels);
 
-  return checkinChannels.includes("voice") &&
-    preferredChannels.includes("voice") &&
-    checkin.attempts_made >= 1;
+  return checkinChannels.includes("voice") && preferredChannels.includes("voice");
 }
 
 function shouldUseSms(checkin: CareCheckin, recipient: CareRecipient) {
@@ -480,4 +478,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
