@@ -109,7 +109,7 @@ function buildRecipientTwiml(args: {
 }) {
   const { actionUrl, recipientName } = args;
 
-  return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });
 }
 
 function buildEscalationTwiml(args: {
@@ -118,7 +118,7 @@ function buildEscalationTwiml(args: {
 }) {
   const { actionUrl, recipientName } = args;
 
-  return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });
 }
 
 function buildGenericTwiml(args: {
@@ -126,7 +126,7 @@ function buildGenericTwiml(args: {
 }) {
   const { actionUrl } = args;
 
-  return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });
 }
 
 export async function POST(req: NextRequest) {
@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
       });
   } catch (error) {
     console.error("[twilio:voice:incoming:error]", error);
-    return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`, { headers: { "Content-Type": "text/xml" } });
+    return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });
   }
 }
 

@@ -8,12 +8,13 @@ export async function POST(req: NextRequest) {
   const bodyRaw = String(form.get("Body") || "").trim().toLowerCase();
 
   const supabase = await createClient();
+  const db: any = supabase;
 
-  const { data: recipient } = await supabase
+  const { data: recipient } = (await db
     .from("care_recipients")
     .select("*")
     .eq("phone", from)
-    .single();
+    .single()) as { data: any | null };
 
   if (!recipient) {
     return new NextResponse("<Response></Response>", {
@@ -21,14 +22,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const { data: checkin } = await supabase
+  const { data: checkin } = (await db
     .from("care_checkins")
     .select("*")
     .eq("recipient_id", recipient.id)
     .in("status", ["pending", "escalating"])
     .order("scheduled_for", { ascending: false })
     .limit(1)
-    .single();
+    .single()) as { data: any | null };
 
   if (!checkin) {
     return new NextResponse("<Response></Response>", {
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
   const isHelp = recipient.help_keywords.includes(bodyRaw);
 
   if (isConfirm) {
-    await supabase
+    await db
       .from("care_checkins")
       .update({
         status: "confirmed",
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", checkin.id);
 
-    await supabase.from("care_events").insert({
+    await db.from("care_events").insert({
       type: "checkin_confirmed",
       check_in_id: checkin.id,
       recipient_id: recipient.id,
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (isHelp) {
-    await supabase
+    await db
       .from("care_checkins")
       .update({
         status: "help_requested",
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", checkin.id);
 
-    await supabase.from("care_events").insert({
+    await db.from("care_events").insert({
       type: "checkin_help_requested",
       check_in_id: checkin.id,
       recipient_id: recipient.id,
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
       channel: "sms",
     });
 
-    await supabase.from("care_incidents").insert({
+    await db.from("care_incidents").insert({
       id: crypto.randomUUID(),
       check_in_id: checkin.id,
       recipient_id: recipient.id,

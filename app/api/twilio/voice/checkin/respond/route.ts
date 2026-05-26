@@ -12,14 +12,13 @@ function xml(body: string) {
 }
 
 function say(message: string) {
-  return `return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, { headers: { "Content-Type": "text/xml" } });`;
+  return `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${message}</Say></Response>`;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const queryCheckinId = url.searchParams.get("checkinId") || "";
-
     const form = await req.formData();
     const digits = String(form.get("Digits") ?? "");
     const speech = String(form.get("SpeechResult") ?? "").toLowerCase();
@@ -27,20 +26,11 @@ export async function POST(req: NextRequest) {
     const from = String(form.get("From") ?? "");
 
     let resolution: "safe" | "needs_help" | null = null;
+    if (digits === "1" || speech.includes("ok") || speech.includes("safe")) resolution = "safe";
+    if (digits === "2" || speech.includes("help") || speech.includes("emergency")) resolution = "needs_help";
 
-    if (digits === "1" || speech.includes("okay") || speech.includes("ok") || speech.includes("safe")) {
-      resolution = "safe";
-    } else if (digits === "2" || speech.includes("help") || speech.includes("emergency")) {
-      resolution = "needs_help";
-    }
-
-    if (!queryCheckinId) {
-      return xml(say("We could not match this call to a check-in. Goodbye."));
-    }
-
-    if (!resolution) {
-      return xml(say("Sorry, we could not understand your response. Goodbye."));
-    }
+    if (!queryCheckinId) return xml(say("We could not match this call to a check-in. Goodbye."));
+    if (!resolution) return xml(say("Sorry, we could not understand your response. Goodbye."));
 
     await resolveCheckin({
       checkinId: queryCheckinId,
@@ -52,14 +42,14 @@ export async function POST(req: NextRequest) {
       from: from || null,
     });
 
-    if (resolution === "safe") {
-      return xml(say("Thank you. Your LifeSignal check-in is marked safe. Goodbye."));
-    }
-
-    return xml(say("Thank you. We marked this as needing help and will notify your guardian. Goodbye."));
-  } catch (error) {
+    return xml(
+      say(
+        resolution === "safe"
+          ? "Thank you. Your LifeSignal check-in is marked safe. Goodbye."
+          : "Thank you. We marked this as needing help and will notify your guardian. Goodbye.",
+      ),
+    );
+  } catch {
     return xml(say("We could not process your response right now. Goodbye."));
   }
 }
-
-
